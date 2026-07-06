@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Asociación - Login</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <h1>Bienvenido</h1>
+
+  <div id="g_id_onload"
+       data-client_id="622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
+
+  <p id="resultado"></p>
+
+  <script>
+    function handleCredentialResponse(response) {
+      const datos = JSON.parse(atob(response.credential.split('.')[1]));
+      document.getElementById('resultado').innerText =
+        "Hola " + datos.name + " (" + datos.email + ")";
+    }
+  </script>
+</body>
+</html>
