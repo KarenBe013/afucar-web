@@ -14,14 +14,75 @@
   </div>
   <div class="g_id_signin" data-type="standard"></div>
 
-  <p id="resultado"></p>
+  <div id="contenido"></div>
 
   <script>
+    const URL_BACKEND = "https://script.google.com/macros/s/AKfycbzZ009FYc_YZvmD1jZ7L4VL-lSPJ5fubtDFpSsKBaAirAt8PpzP0S6_GZBt8dHkXVEp/exec";
+
+    let categoriasDescuento = [];
+
     function handleCredentialResponse(response) {
       const datos = JSON.parse(atob(response.credential.split('.')[1]));
-      document.getElementById('resultado').innerText =
-        "Hola " + datos.name + " (" + datos.email + ")";
+      const email = datos.email;
+      const nombre = datos.name;
+
+      document.getElementById('contenido').innerText = "Verificando usuario...";
+
+      fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.existe) {
+            mostrarUsuarioExistente(data, email);
+          } else {
+            mostrarFormularioRegistro(email, nombre);
+          }
+        })
+        .catch(err => {
+          document.getElementById('contenido').innerText = "Error al conectar con el servidor.";
+          console.error(err);
+        });
     }
-  </script>
-</body>
-</html>
+
+    function mostrarUsuarioExistente(data, email) {
+      document.getElementById('contenido').innerHTML = `
+        <p>Hola ${data.nombre} ${data.apellido} (${email})</p>
+        <p>Categoría: ${data.categoria_solicitada} — Estado: ${data.estado_categoria}</p>
+      `;
+    }
+
+    function mostrarFormularioRegistro(email, nombreGoogle) {
+      document.getElementById('contenido').innerHTML = `
+        <h2>Completa tu registro</h2>
+        <form id="formRegistro">
+          <input type="hidden" id="email" value="${email}">
+          <p><input type="text" id="nombre" placeholder="Nombre" value="${nombreGoogle}" required></p>
+          <p><input type="text" id="apellido" placeholder="Apellido" required></p>
+          <p><input type="text" id="ci" placeholder="Cédula de Identidad" required></p>
+          <p><input type="text" id="telefono" placeholder="Teléfono" required></p>
+          <p>
+            <label>Categoría:</label>
+            <select id="categoria">
+              <option value="particular">Particular</option>
+              <option value="socio">Socio</option>
+              <option value="convenio">Convenio / otra institución</option>
+            </select>
+          </p>
+
+          <div id="bloqueConvenio" style="display:none;">
+            <p>
+              <label>¿Cuál institución?</label>
+              <select id="institucion"></select>
+            </p>
+            <div id="bloqueComprobante" style="display:none;">
+              <p id="labelComprobante"></p>
+              <p><input type="file" id="comprobante" accept="image/*,.pdf"></p>
+            </div>
+          </div>
+
+          <button type="submit">Registrarme</button>
+        </form>
+        <p id="mensajeRegistro"></p>
+      `;
+
+      // Traemos la lista de instituciones desde el backend
+      fetch(
