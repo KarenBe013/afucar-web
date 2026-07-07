@@ -84,5 +84,101 @@
         <p id="mensajeRegistro"></p>
       `;
 
-      // Traemos la lista de instituciones desde el backend
-      fetch(
+      fetch(`${URL_BACKEND}?accion=obtenerCategoriasDescuento`)
+        .then(res => res.json())
+        .then(data => {
+          categoriasDescuento = data.categorias || [];
+          const select = document.getElementById('institucion');
+          categoriasDescuento.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.nombre;
+            select.appendChild(opt);
+          });
+        });
+
+      const elCategoria = document.getElementById('categoria');
+      const bloqueConvenio = document.getElementById('bloqueConvenio');
+      const bloqueComprobante = document.getElementById('bloqueComprobante');
+      const labelComprobante = document.getElementById('labelComprobante');
+      const elInstitucion = document.getElementById('institucion');
+
+      elCategoria.addEventListener('change', () => {
+        bloqueConvenio.style.display = elCategoria.value === 'convenio' ? 'block' : 'none';
+        actualizarBloqueComprobante();
+      });
+
+      elInstitucion.addEventListener('change', actualizarBloqueComprobante);
+
+      function actualizarBloqueComprobante() {
+        const inst = categoriasDescuento.find(c => c.id === elInstitucion.value);
+        if (inst && inst.requiere_comprobante === 'SI') {
+          bloqueComprobante.style.display = 'block';
+          labelComprobante.textContent = `Subí: ${inst.tipo_comprobante}`;
+        } else {
+          bloqueComprobante.style.display = 'none';
+        }
+      }
+
+      document.getElementById('formRegistro').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const categoria = elCategoria.value;
+        const inst = categoria === 'convenio' ? categoriasDescuento.find(c => c.id === elInstitucion.value) : null;
+        const requiereComprobante = inst && inst.requiere_comprobante === 'SI';
+        const archivoInput = document.getElementById('comprobante');
+
+        if (requiereComprobante && (!archivoInput.files || archivoInput.files.length === 0)) {
+          alert('Para esta institución es obligatorio subir el comprobante indicado.');
+          return;
+        }
+
+        document.getElementById('mensajeRegistro').textContent = "Registrando...";
+
+        function enviarRegistro(comprobanteData) {
+          const body = {
+            accion: 'registrarUsuario',
+            email: document.getElementById('email').value,
+            nombre: document.getElementById('nombre').value,
+            apellido: document.getElementById('apellido').value,
+            ci: document.getElementById('ci').value,
+            telefono: document.getElementById('telefono').value,
+            categoria_solicitada: categoria,
+            id_convenio: categoria === 'convenio' ? elInstitucion.value : '',
+            comprobante: comprobanteData
+          };
+
+          fetch(URL_BACKEND, {
+            method: 'POST',
+            body: JSON.stringify(body)
+          })
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('mensajeRegistro').textContent = "¡Registro exitoso! Recargá la página e ingresá de nuevo.";
+          })
+          .catch(err => {
+            document.getElementById('mensajeRegistro').textContent = "Error al registrar.";
+            console.error(err);
+          });
+        }
+
+        if (requiereComprobante) {
+          const archivo = archivoInput.files[0];
+          const lector = new FileReader();
+          lector.onload = function() {
+            const base64 = lector.result.split(',')[1];
+            enviarRegistro({
+              base64: base64,
+              nombreArchivo: archivo.name,
+              mimeType: archivo.type
+            });
+          };
+          lector.readAsDataURL(archivo);
+        } else {
+          enviarRegistro(null);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
