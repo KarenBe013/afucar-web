@@ -131,6 +131,26 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 .respuesta-mostrada{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-top:10px;color:var(--ink-soft);}
 .respuesta-mostrada strong{color:var(--ink);}
 
+.cierre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;font-size:13.5px;margin-bottom:16px;}
+.cierre-input-wrap{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+.cierre-input-wrap label{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:4px;}
+.cierre-input-wrap input{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;width:160px;}
+.resultado-devolucion{
+  background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-bottom:14px;
+}
+.resultado-devolucion strong{color:var(--navy-deep);}
+
+.mini-cal-day{cursor:default;}
+.mini-cal-day.con-eventos{cursor:pointer;}
+.mini-cal-day.dia-seleccionado{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.detalle-dia{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  padding:18px 20px;margin-bottom:24px;max-width:420px;
+}
+.detalle-dia h4{font-size:14px;color:var(--navy-deep);margin-bottom:10px;}
+.detalle-dia .item{padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;}
+.detalle-dia .item:first-of-type{border-top:none;}
+
 @media print{
   header, .tabs, .page-head, #estadoAcceso{display:none!important;}
   .panel-tab{display:none!important;}
@@ -185,6 +205,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelSimulador">Simulador</button>
       <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
       <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
+      <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
     </div>
 
     <!-- SOLICITUDES -->
@@ -282,6 +303,8 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       </div>
       <div class="mini-cal-grid" id="miniCalGrid"></div>
 
+      <div id="detalleDiaCont"></div>
+
       <div id="listadoMensualCont" class="imprimir-activo">
         <h3 id="tituloListado" style="font-size:16px;color:var(--navy-deep);margin-bottom:12px;"></h3>
         <table class="tabla" id="tablaListado">
@@ -298,12 +321,21 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <div id="listaTickets" class="cargando">Cargando consultas...</div>
     </div>
 
+    <!-- CIERRE DE EVENTOS -->
+    <div id="panelCierre" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Eventos ya aprobados del salón de eventos. Cargá lo consumido/roto para calcular cuánto hay que devolver de la seña,
+        y confirmá cuando ya hayas hecho la devolución.
+      </p>
+      <div id="listaCierre" class="cargando">Cargando eventos...</div>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyz-nkTV4rOImmk5Qp4nS3PfOLjijN3CQGCU4xDvqt4yu_YZ-zqV-s3xXfDefL22q5E/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwUZLmI5TIN7pSBRjY6IEDeXakHAexsr-FLZChysUg2uFuDmJ9qaitT5fId8LlfbqPH/exec";
 let emailAdmin = null;
 
 function handleCredentialResponseAdmin(response){
@@ -319,6 +351,7 @@ function handleCredentialResponseAdmin(response){
   cargarSocios();
   cargarConvenios();
   cargarTickets();
+  cargarCierre();
   inicializarSelectMeses();
 }
 
@@ -641,24 +674,26 @@ function inicializarSelectMeses(){
 document.getElementById('btnCargarCalendario').addEventListener('click', cargarCalendarioYListado);
 document.getElementById('btnImprimirListado').addEventListener('click', () => window.print());
 
+let reservasDelMesActual = [];
+
 function cargarCalendarioYListado(){
   const tipo = document.getElementById('calTipoEspacio').value;
   const anio = Number(document.getElementById('calAnio').value);
   const mes = Number(document.getElementById('calMes').value);
-
-  fetch(`${URL_BACKEND}?accion=obtenerEventosMes&tipo=${tipo}&anio=${anio}&mes=${mes}`)
-    .then(res => res.json())
-    .then(data => generarMiniCalendario(anio, mes, data.eventos || []))
-    .catch(err => console.error(err));
+  document.getElementById('detalleDiaCont').innerHTML = '';
 
   fetch(`${URL_BACKEND}?accion=obtenerReservasDelMes&emailAdmin=${encodeURIComponent(emailAdmin)}&tipo=${tipo}&anio=${anio}&mes=${mes}`)
     .then(res => res.json())
-    .then(data => renderListadoMensual(data.reservas || [], tipo, anio, mes))
+    .then(data => {
+      reservasDelMesActual = data.reservas || [];
+      generarMiniCalendario(anio, mes, reservasDelMesActual);
+      renderListadoMensual(reservasDelMesActual, tipo, anio, mes);
+    })
     .catch(err => console.error(err));
 }
 
-function generarMiniCalendario(anio, mes, eventos){
-  const diasConEventos = new Set(eventos.map(ev => new Date(ev.inicio).getDate()));
+function generarMiniCalendario(anio, mes, reservas){
+  const diasConEventos = new Set(reservas.map(r => new Date(r.hora_inicio).getDate()));
   const grid = document.getElementById('miniCalGrid');
   grid.innerHTML = '';
 
@@ -675,9 +710,35 @@ function generarMiniCalendario(anio, mes, eventos){
   for(let d = 1; d <= ultimoDia.getDate(); d++){
     const celda = document.createElement('div');
     celda.textContent = d;
-    celda.className = 'mini-cal-day' + (diasConEventos.has(d) ? ' con-eventos' : '');
+    const tieneEventos = diasConEventos.has(d);
+    celda.className = 'mini-cal-day' + (tieneEventos ? ' con-eventos' : '');
+    if(tieneEventos){
+      celda.addEventListener('click', () => mostrarDetalleDia(d, celda));
+    }
     grid.appendChild(celda);
   }
+}
+
+function mostrarDetalleDia(dia, celda){
+  document.querySelectorAll('.mini-cal-day').forEach(c => c.classList.remove('dia-seleccionado'));
+  celda.classList.add('dia-seleccionado');
+
+  const eventosDelDia = reservasDelMesActual.filter(r => new Date(r.hora_inicio).getDate() === dia);
+  const cont = document.getElementById('detalleDiaCont');
+
+  let html = `<div class="detalle-dia"><h4>Eventos del día ${dia}</h4>`;
+  eventosDelDia.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    html += `<div class="item">
+      <strong>${r.nombre_solicitante}</strong><br>
+      ${horaTxt} · ${r.capacidad_personas ? r.capacidad_personas + ' personas' : ''} ·
+      <span class="tag ${r.estado_reserva === 'aprobada' ? 'aprobado' : 'pendiente'}">${r.estado_reserva}</span>
+    </div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
 }
 
 function renderListadoMensual(lista, tipo, anio, mes){
@@ -749,6 +810,88 @@ function renderTickets(lista){
       })})
       .then(res => res.json())
       .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarTickets(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Cierre de eventos (gastos y devolución de seña) ============ */
+function cargarCierre(){
+  fetch(`${URL_BACKEND}?accion=obtenerCierreEventos&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderCierre(data.eventos || []); })
+    .catch(err => console.error(err));
+}
+
+function renderCierre(lista){
+  document.getElementById('badgeCierre').textContent = lista.length;
+  const cont = document.getElementById('listaCierre');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay eventos pasados esperando cierre.</p>'; return; }
+  cont.innerHTML = '';
+
+  lista.forEach(ev => {
+    const fechaTxt = new Date(ev.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const inicio = new Date(ev.hora_inicio);
+    const fin = new Date(ev.hora_fin);
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    const yaCalculado = ev.estado_devolucion === 'pendiente' || ev.estado_devolucion === 'no_corresponde';
+
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${ev.nombre_solicitante}</div>
+        <div class="card-sub">${fechaTxt} · ${horaTxt}</div></div>
+        <span class="tag ${ev.estado_devolucion === 'pendiente' ? 'pendiente' : (ev.estado_devolucion === 'no_corresponde' ? 'aprobado' : '')}">
+          ${ev.estado_devolucion === 'sin_procesar' ? 'Falta cargar gastos' : (ev.estado_devolucion === 'pendiente' ? 'Devolución pendiente' : 'Sin devolución')}
+        </span>
+      </div>
+      <div class="datos-grid">
+        <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
+      </div>
+
+      <div class="cierre-input-wrap">
+        <div>
+          <label>Consumo / roturas ($)</label>
+          <input type="number" min="0" class="input-consumo" data-id="${ev.id_reserva}" value="${ev.monto_consumido || ''}" placeholder="0">
+        </div>
+        <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
+      </div>
+
+      ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
+
+      ${ev.estado_devolucion === 'pendiente'
+        ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
+        : ''}
+    `;
+    cont.appendChild(div);
+  });
+
+  cont.querySelectorAll('.btn-calcular').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = cont.querySelector(`.input-consumo[data-id="${btn.dataset.id}"]`);
+      const montoConsumido = Number(input.value) || 0;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'registrarGastosEvento', emailAdmin, idReserva: btn.dataset.id, montoConsumido
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); } cargarCierre(); })
+      .catch(err => console.error(err));
+    });
+  });
+
+  cont.querySelectorAll('.btn-confirmar-devolucion').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Confirmás que ya le devolviste el dinero correspondiente a esta persona?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'confirmarDevolucion', emailAdmin, idReserva: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarCierre(); })
       .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
