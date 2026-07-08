@@ -24,13 +24,12 @@ header{background:var(--navy-deep);color:#fff;padding:14px 24px;display:flex;ali
 .brand img{width:40px;height:40px;border-radius:50%;}
 .brand .name{font-family:'Source Serif 4',serif;font-size:18px;font-weight:600;}
 .brand .sub{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-soft);}
-header a.volver{font-size:13px;color:#c6cedb;text-decoration:underline;}
 
 #areaUsuarioHeader{display:flex;align-items:center;gap:10px;font-size:13.5px;color:#dfe4ec;}
 #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;cursor:pointer;}
 
-.page-wrap{max-width:1000px;margin:0 auto;padding:40px 24px 80px;}
-.page-head{margin-bottom:32px;}
+.page-wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px;}
+.page-head{margin-bottom:28px;}
 .page-head h1{font-size:26px;color:var(--navy-deep);font-weight:600;}
 .page-head p{color:var(--ink-soft);font-size:14px;margin-top:6px;}
 
@@ -42,15 +41,15 @@ header a.volver{font-size:13px;color:#c6cedb;text-decoration:underline;}
 .acceso-box p{font-size:14px;color:var(--ink-soft);margin-bottom:22px;}
 .acceso-denegado{color:#b5442e;font-weight:600;}
 
-.tabs{display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--line);}
+.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
 .tab-btn{
-  background:transparent;border:none;padding:12px 18px;font-size:14px;font-weight:600;
-  color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;
+  background:transparent;border:none;padding:12px 16px;font-size:13.5px;font-weight:600;
+  color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
 }
 .tab-btn.active{color:var(--navy-deep);border-color:var(--gold);}
 .tab-btn .badge{
   background:var(--gold);color:var(--navy-deep);font-size:11px;font-weight:700;
-  border-radius:10px;padding:1px 7px;margin-left:6px;
+  border-radius:10px;padding:1px 7px;margin-left:4px;
 }
 
 .panel-tab{display:none;}
@@ -67,6 +66,12 @@ header a.volver{font-size:13px;color:#c6cedb;text-decoration:underline;}
   display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
   background:rgba(15,42,74,.06);color:var(--navy);padding:3px 9px;border-radius:3px;font-weight:700;
 }
+.tag.aprobado{background:rgba(47,158,92,.12);color:#1f7a45;}
+.tag.pendiente{background:rgba(201,162,39,.15);color:#a4801f;}
+.tag.rechazado{background:rgba(181,68,46,.1);color:#b5442e;}
+.tag.abierto{background:rgba(201,162,39,.15);color:#a4801f;}
+.tag.respondido{background:rgba(47,158,92,.12);color:#1f7a45;}
+
 .datos-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 20px;
   font-size:13.5px;margin-bottom:16px;
@@ -78,9 +83,59 @@ header a.volver{font-size:13px;color:#c6cedb;text-decoration:underline;}
 .btn-aprobar:hover{background:#268049;}
 .btn-rechazar{background:transparent;color:#b5442e;border:1px solid #b5442e;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
 .btn-rechazar:hover{background:#fdf0ee;}
+.btn-secundario{background:var(--navy);color:#fff;border:none;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-secundario:hover{background:var(--navy-soft);}
 .link-comprobante{font-size:13px;color:var(--navy);text-decoration:underline;font-weight:600;}
 .vacio{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
 .cargando{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
+
+table.tabla{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--paper-white);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+table.tabla th{background:rgba(15,42,74,.05);text-align:left;padding:10px 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);}
+table.tabla td{padding:10px 14px;border-top:1px solid var(--line);}
+table.tabla input[type="text"]{width:100%;border:none;background:transparent;font-size:13.5px;font-family:'Inter',sans-serif;}
+
+.filtro-input{
+  width:100%;max-width:320px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;
+  font-size:13.5px;margin-bottom:16px;background:var(--paper-white);
+}
+
+.sim-box{background:var(--navy-deep);color:#fff;border-radius:8px;padding:30px;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;}
+.sim-field label{display:block;font-size:12px;color:#a8b2c0;margin:14px 0 6px;}
+.sim-field label:first-child{margin-top:0;}
+.sim-field select,.sim-field input{
+  width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.2);border-radius:4px;
+  background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-family:'Inter',sans-serif;
+}
+.sim-field select option{color:#111;}
+.sim-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.sim-tab-btn{background:transparent;border:1px solid rgba(255,255,255,.25);color:#c6cedb;padding:8px 16px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;}
+.sim-tab-btn.active{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.sim-resultado{background:rgba(255,255,255,.05);border-radius:6px;padding:20px;}
+.sim-resultado .linea{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:14px;}
+.sim-resultado .total strong{color:var(--gold-soft);font-size:22px;font-family:'Source Serif 4',serif;}
+
+.cal-controles{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.cal-controles select{padding:8px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;background:var(--paper-white);}
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;margin-bottom:24px;}
+.mini-cal-day{aspect-ratio:1/1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;background:var(--paper-white);border:1px solid var(--line);color:var(--ink-soft);}
+.mini-cal-day.empty{background:transparent;border:none;}
+.mini-cal-day.con-eventos{background:rgba(201,162,39,.18);color:var(--navy-deep);border-color:var(--gold);}
+.mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;text-align:center;margin-bottom:6px;font-weight:600;}
+
+.form-convenio{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.form-convenio input{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;}
+
+.ticket-respuesta{margin-top:14px;display:flex;gap:10px;}
+.ticket-respuesta textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;}
+.respuesta-mostrada{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-top:10px;color:var(--ink-soft);}
+.respuesta-mostrada strong{color:var(--ink);}
+
+@media print{
+  header, .tabs, .page-head, #estadoAcceso{display:none!important;}
+  .panel-tab{display:none!important;}
+  .panel-tab.imprimir-activo{display:block!important;}
+}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -112,34 +167,143 @@ header a.volver{font-size:13px;color:#c6cedb;text-decoration:underline;}
   <div id="estadoAcceso">
     <div class="acceso-box">
       <h2>Panel de administración</h2>
-      <p>Iniciá sesión con la cuenta de administrador para ver las solicitudes pendientes.</p>
+      <p>Iniciá sesión con la cuenta de administrador para continuar.</p>
     </div>
   </div>
 
   <div id="panelAdmin" style="display:none;">
     <div class="page-head">
       <h1>Panel de administración</h1>
-      <p>Aprobá o rechazá solicitudes de membresía y reservas del salón.</p>
+      <p>Gestioná socios, convenios, reservas, consultas y presupuestos del salón.</p>
     </div>
 
     <div class="tabs">
-      <button class="tab-btn active" data-panel="panelSocios">Solicitudes de membresía <span class="badge" id="badgeSocios">0</span></button>
+      <button class="tab-btn active" data-panel="panelSolicitudes">Solicitudes <span class="badge" id="badgeSolicitudes">0</span></button>
       <button class="tab-btn" data-panel="panelReservas">Reservas pendientes <span class="badge" id="badgeReservas">0</span></button>
+      <button class="tab-btn" data-panel="panelSocios">Socios</button>
+      <button class="tab-btn" data-panel="panelConvenios">Convenios</button>
+      <button class="tab-btn" data-panel="panelSimulador">Simulador</button>
+      <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
+      <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
     </div>
 
-    <div id="panelSocios" class="panel-tab active">
+    <!-- SOLICITUDES -->
+    <div id="panelSolicitudes" class="panel-tab active">
       <div id="listaSocios" class="cargando">Cargando solicitudes...</div>
     </div>
 
+    <!-- RESERVAS PENDIENTES -->
     <div id="panelReservas" class="panel-tab">
       <div id="listaReservas" class="cargando">Cargando reservas...</div>
     </div>
+
+    <!-- SOCIOS (listado completo) -->
+    <div id="panelSocios" class="panel-tab">
+      <input type="text" id="filtroSocios" class="filtro-input" placeholder="Buscar por nombre, email o CI...">
+      <div id="tablaSociosCont" class="cargando">Cargando socios...</div>
+    </div>
+
+    <!-- CONVENIOS -->
+    <div id="panelConvenios" class="panel-tab">
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Agregar convenio</h3>
+        <div class="form-convenio">
+          <input type="text" id="nuevoConvenioNombre" placeholder="Nombre del convenio (ej: Farmacia X)">
+          <input type="text" id="nuevoConvenioDesc" placeholder="Descripción breve del beneficio">
+          <button class="btn-secundario" id="btnAgregarConvenio">Agregar</button>
+        </div>
+      </div>
+      <div id="listaConvenios" class="cargando">Cargando convenios...</div>
+    </div>
+
+    <!-- SIMULADOR -->
+    <div id="panelSimulador" class="panel-tab">
+      <div class="sim-box">
+        <div class="sim-tabs">
+          <button class="sim-tab-btn active" data-tipo="eventos">Salón de eventos</button>
+          <button class="sim-tab-btn" data-tipo="talleres">Salón de talleres</button>
+        </div>
+        <div class="sim-grid">
+          <div>
+            <div id="simCamposEventos">
+              <div class="sim-field"><label>Cantidad de personas</label>
+                <select id="simCapacidad">
+                  <option value="25">25 personas</option>
+                  <option value="50">50 personas</option>
+                  <option value="75">75 personas</option>
+                  <option value="100">100 personas</option>
+                </select>
+              </div>
+              <div class="sim-field"><label>Día y horario</label>
+                <select id="simFranja">
+                  <option value="0">Lunes a Jueves · 10 a 16 hs</option>
+                  <option value="1">Viernes a Domingos · 10 a 16 hs</option>
+                  <option value="2">Lunes a Jueves · 19 a 01 hs</option>
+                  <option value="3">Viernes a Domingos · 19 a 01 hs</option>
+                </select>
+              </div>
+            </div>
+            <div id="simCamposTalleres" style="display:none;">
+              <div class="sim-field"><label>Cantidad de horas</label>
+                <input type="number" id="simHoras" min="1" value="2">
+              </div>
+            </div>
+            <div class="sim-field"><label>Tipo de usuario</label>
+              <select id="simCategoria">
+                <option value="socio">Socio</option>
+                <option value="particular">Particular</option>
+              </select>
+            </div>
+          </div>
+          <div class="sim-resultado">
+            <div class="linea"><span>Alquiler</span><strong id="simAlquiler">$ 0</strong></div>
+            <div class="linea" id="simLineaSena"><span>Seña</span><strong id="simSena">$ 0</strong></div>
+            <div class="linea total" style="border:none;"><span>Total presupuesto</span><strong id="simTotal">$ 0</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div id="panelCalendario" class="panel-tab">
+      <div class="cal-controles">
+        <select id="calTipoEspacio">
+          <option value="eventos">Salón de eventos</option>
+          <option value="talleres">Salón de talleres</option>
+        </select>
+        <select id="calMes"></select>
+        <select id="calAnio"></select>
+        <button class="btn-secundario" id="btnCargarCalendario">Cargar mes</button>
+        <button class="btn-secundario" id="btnImprimirListado" style="background:var(--gold);color:var(--navy-deep);">Imprimir / Guardar PDF</button>
+      </div>
+
+      <div class="mini-cal-weekdays">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="mini-cal-grid" id="miniCalGrid"></div>
+
+      <div id="listadoMensualCont" class="imprimir-activo">
+        <h3 id="tituloListado" style="font-size:16px;color:var(--navy-deep);margin-bottom:12px;"></h3>
+        <table class="tabla" id="tablaListado">
+          <thead>
+            <tr><th>Fecha</th><th>Hora</th><th>Nombre y apellido</th><th>Personas</th><th>Estado</th></tr>
+          </thead>
+          <tbody id="tablaListadoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TICKETS -->
+    <div id="panelTickets" class="panel-tab">
+      <div id="listaTickets" class="cargando">Cargando consultas...</div>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyaI3RUhs4ZmRAcQBs0E9rI6GfovsycYKnrVqQKNsSDXxkmz2gRRyAfG5gwUBEjosR6/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyz-nkTV4rOImmk5Qp4nS3PfOLjijN3CQGCU4xDvqt4yu_YZ-zqV-s3xXfDefL22q5E/exec";
 let emailAdmin = null;
 
 function handleCredentialResponseAdmin(response){
@@ -151,7 +315,11 @@ function handleCredentialResponseAdmin(response){
   document.getElementById('areaUsuarioHeader').style.display = 'flex';
 
   cargarSolicitudes();
-  cargarReservas();
+  cargarReservasPendientes();
+  cargarSocios();
+  cargarConvenios();
+  cargarTickets();
+  inicializarSelectMeses();
 }
 
 document.getElementById('btnCerrarSesionHeader').addEventListener('click', () => {
@@ -162,36 +330,34 @@ document.getElementById('btnCerrarSesionHeader').addEventListener('click', () =>
   document.getElementById('areaUsuarioHeader').style.display = 'none';
   document.getElementById('areaLoginHeader').style.display = 'block';
   document.getElementById('panelAdmin').style.display = 'none';
+  document.getElementById('estadoAcceso').style.display = 'block';
   document.getElementById('estadoAcceso').innerHTML = `
     <div class="acceso-box">
       <h2>Panel de administración</h2>
-      <p>Iniciá sesión con la cuenta de administrador para ver las solicitudes pendientes.</p>
+      <p>Iniciá sesión con la cuenta de administrador para continuar.</p>
     </div>`;
 });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active', 'imprimir-activo'));
     btn.classList.add('active');
-    document.getElementById(btn.dataset.panel).classList.add('active');
+    const panel = document.getElementById(btn.dataset.panel);
+    panel.classList.add('active');
+    if(btn.dataset.panel === 'panelCalendario') panel.classList.add('imprimir-activo');
   });
 });
 
 function formatoPesos(n){ return '$ ' + Number(n).toLocaleString('es-UY'); }
+const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa' };
 
-const NOMBRES_INST = {
-  legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa'
-};
-
+/* ============ Acceso / Solicitudes ============ */
 function cargarSolicitudes(){
   fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
     .then(res => res.json())
     .then(data => {
-      if(data.error){
-        mostrarAccesoDenegado();
-        return;
-      }
+      if(data.error){ mostrarAccesoDenegado(); return; }
       document.getElementById('estadoAcceso').style.display = 'none';
       document.getElementById('panelAdmin').style.display = 'block';
       renderSolicitudes(data.solicitudes || []);
@@ -205,31 +371,25 @@ function mostrarAccesoDenegado(){
   document.getElementById('estadoAcceso').innerHTML = `
     <div class="acceso-box">
       <h2 class="acceso-denegado">Acceso no autorizado</h2>
-      <p>Esta cuenta no tiene permisos de administrador. Iniciá sesión con la cuenta correcta.</p>
+      <p>Esta cuenta no tiene permisos de administrador.</p>
     </div>`;
 }
 
 function renderSolicitudes(lista){
-  document.getElementById('badgeSocios').textContent = lista.length;
+  document.getElementById('badgeSolicitudes').textContent = lista.length;
   const cont = document.getElementById('listaSocios');
-  if(lista.length === 0){
-    cont.innerHTML = '<p class="vacio">No hay solicitudes pendientes.</p>';
-    return;
-  }
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay solicitudes pendientes.</p>'; return; }
   cont.innerHTML = '';
   lista.forEach(s => {
     const categoriaTexto = s.categoria_solicitada === 'convenio'
       ? `Convenio · ${NOMBRES_INST[s.id_convenio] || s.id_convenio}`
       : (s.categoria_solicitada === 'socio' ? 'Socio' : 'Particular');
-
     const div = document.createElement('div');
     div.className = 'card';
     div.innerHTML = `
       <div class="card-top">
-        <div>
-          <div class="card-title">${s.nombre} ${s.apellido}</div>
-          <div class="card-sub">${s.email} · Registrado el ${s.fecha_registro}</div>
-        </div>
+        <div><div class="card-title">${s.nombre} ${s.apellido}</div>
+        <div class="card-sub">${s.email} · Registrado el ${s.fecha_registro}</div></div>
         <span class="tag">${categoriaTexto}</span>
       </div>
       <div class="datos-grid">
@@ -240,51 +400,34 @@ function renderSolicitudes(lista){
       <div class="card-acciones">
         <button class="btn-aprobar" data-email="${s.email}" data-accion="aprobado">Aprobar</button>
         <button class="btn-rechazar" data-email="${s.email}" data-accion="rechazado">Rechazar</button>
-      </div>
-    `;
+      </div>`;
     cont.appendChild(div);
   });
-
   cont.querySelectorAll('.btn-aprobar, .btn-rechazar').forEach(btn => {
     btn.addEventListener('click', () => {
-      btn.disabled = true;
-      btn.textContent = '...';
-      fetch(URL_BACKEND, {
-        method: 'POST',
-        body: JSON.stringify({
-          accion: 'actualizarEstadoUsuario',
-          emailAdmin: emailAdmin,
-          emailUsuario: btn.dataset.email,
-          nuevoEstado: btn.dataset.accion
-        })
-      })
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoUsuario', emailAdmin, emailUsuario: btn.dataset.email, nuevoEstado: btn.dataset.accion
+      })})
       .then(res => res.json())
-      .then(data => {
-        if(data.error){ alert(data.error); btn.disabled = false; return; }
-        cargarSolicitudes();
-      })
-      .catch(err => { console.error(err); btn.disabled = false; });
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarSolicitudes(); cargarSocios(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
 }
 
-function cargarReservas(){
+/* ============ Reservas pendientes ============ */
+function cargarReservasPendientes(){
   fetch(`${URL_BACKEND}?accion=obtenerReservasPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
     .then(res => res.json())
-    .then(data => {
-      if(data.error) return;
-      renderReservas(data.reservas || []);
-    })
+    .then(data => { if(data.error) return; renderReservas(data.reservas || []); })
     .catch(err => console.error(err));
 }
 
 function renderReservas(lista){
   document.getElementById('badgeReservas').textContent = lista.length;
   const cont = document.getElementById('listaReservas');
-  if(lista.length === 0){
-    cont.innerHTML = '<p class="vacio">No hay reservas pendientes.</p>';
-    return;
-  }
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay reservas pendientes.</p>'; return; }
   cont.innerHTML = '';
   lista.forEach(r => {
     const inicio = new Date(r.hora_inicio);
@@ -293,15 +436,12 @@ function renderReservas(lista){
     const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
     const tipoTxt = r.tipo_espacio === 'eventos' ? 'Salón de eventos' : 'Salón de talleres';
     const formaPagoTxt = r.forma_pago_sena === 'descuento_sueldo' ? 'Descuento por sueldo' : (r.forma_pago_sena === 'transferencia' ? 'Transferencia' : '—');
-
     const div = document.createElement('div');
     div.className = 'card';
     div.innerHTML = `
       <div class="card-top">
-        <div>
-          <div class="card-title">${r.nombre_solicitante}</div>
-          <div class="card-sub">${tipoTxt} · ${fechaTxt} · ${horaTxt}</div>
-        </div>
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">${tipoTxt} · ${fechaTxt} · ${horaTxt}</div></div>
         <span class="tag">${r.categoria_aplicada}</span>
       </div>
       <div class="datos-grid">
@@ -316,30 +456,300 @@ function renderReservas(lista){
       <div class="card-acciones">
         <button class="btn-aprobar" data-id="${r.id_reserva}" data-accion="aprobada">Aprobar</button>
         <button class="btn-rechazar" data-id="${r.id_reserva}" data-accion="rechazada">Rechazar</button>
-      </div>
-    `;
+      </div>`;
     cont.appendChild(div);
   });
-
   cont.querySelectorAll('.btn-aprobar, .btn-rechazar').forEach(btn => {
     btn.addEventListener('click', () => {
-      btn.disabled = true;
-      btn.textContent = '...';
-      fetch(URL_BACKEND, {
-        method: 'POST',
-        body: JSON.stringify({
-          accion: 'actualizarEstadoReserva',
-          emailAdmin: emailAdmin,
-          idReserva: btn.dataset.id,
-          nuevoEstado: btn.dataset.accion
-        })
-      })
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoReserva', emailAdmin, idReserva: btn.dataset.id, nuevoEstado: btn.dataset.accion
+      })})
       .then(res => res.json())
-      .then(data => {
-        if(data.error){ alert(data.error); btn.disabled = false; return; }
-        cargarReservas();
-      })
-      .catch(err => { console.error(err); btn.disabled = false; });
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarReservasPendientes(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Socios (listado completo) ============ */
+let listaSociosCompleta = [];
+function cargarSocios(){
+  fetch(`${URL_BACKEND}?accion=obtenerListaUsuarios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; listaSociosCompleta = data.usuarios || []; renderTablaSocios(listaSociosCompleta); })
+    .catch(err => console.error(err));
+}
+
+function renderTablaSocios(lista){
+  const cont = document.getElementById('tablaSociosCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay usuarios registrados todavía.</p>'; return; }
+  let html = `<table class="tabla"><thead><tr>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Categoría</th><th>Estado</th>
+  </tr></thead><tbody>`;
+  lista.forEach(u => {
+    const categoriaTexto = u.categoria_solicitada === 'convenio'
+      ? `Convenio · ${NOMBRES_INST[u.id_convenio] || u.id_convenio}`
+      : (u.categoria_solicitada === 'socio' ? 'Socio' : 'Particular');
+    html += `<tr>
+      <td>${u.nombre} ${u.apellido}</td><td>${u.email}</td><td>${u.ci}</td><td>${u.telefono}</td>
+      <td>${categoriaTexto}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+}
+
+document.getElementById('filtroSocios').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  const filtrados = listaSociosCompleta.filter(u =>
+    `${u.nombre} ${u.apellido} ${u.email} ${u.ci}`.toLowerCase().includes(q)
+  );
+  renderTablaSocios(filtrados);
+});
+
+/* ============ Convenios ============ */
+function cargarConvenios(){
+  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderConvenios(data.convenios || []); })
+    .catch(err => console.error(err));
+}
+
+function renderConvenios(lista){
+  const cont = document.getElementById('listaConvenios');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no cargaste ningún convenio.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${c.nombre_convenio}</div><div class="card-sub">${c.descripcion || ''}</div></div>
+        <span class="tag ${c.activo === 'SI' ? 'aprobado' : 'rechazado'}">${c.activo === 'SI' ? 'Activo' : 'Inactivo'}</span>
+      </div>
+      <div class="card-acciones">
+        <button class="btn-secundario" data-id="${c.id_convenio}" data-nuevo="${c.activo === 'SI' ? 'NO' : 'SI'}">
+          ${c.activo === 'SI' ? 'Desactivar' : 'Activar'}
+        </button>
+      </div>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoConvenio', emailAdmin, idConvenio: btn.dataset.id, nuevoEstado: btn.dataset.nuevo
+      })})
+      .then(res => res.json())
+      .then(data => { if(!data.error) cargarConvenios(); })
+      .catch(err => console.error(err));
+    });
+  });
+}
+
+document.getElementById('btnAgregarConvenio').addEventListener('click', () => {
+  const nombre = document.getElementById('nuevoConvenioNombre').value.trim();
+  const desc = document.getElementById('nuevoConvenioDesc').value.trim();
+  if(!nombre){ alert('Escribí el nombre del convenio.'); return; }
+  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+    accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc
+  })})
+  .then(res => res.json())
+  .then(data => {
+    if(data.error){ alert(data.error); return; }
+    document.getElementById('nuevoConvenioNombre').value = '';
+    document.getElementById('nuevoConvenioDesc').value = '';
+    cargarConvenios();
+  })
+  .catch(err => console.error(err));
+});
+
+/* ============ Simulador ============ */
+const TARIFAS_SIM = {
+  socio: {25:[2800,3900,3300,4400], 50:[3700,4800,4400,5500], 75:[4800,5900,5000,6000], 100:[5300,7000,6000,7200]},
+  particular: {50:[8300,9300,8800,10500], 75:[9300,10500,9900,11500], 100:[10500,12000,11000,13200]}
+};
+const SENA_SOCIO_SIM = 3000, SENA_PARTICULAR_SIM = 5000, PRECIO_HORA_TALLER_SIM = 550;
+let simTipoEspacio = 'eventos';
+
+document.querySelectorAll('.sim-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sim-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    simTipoEspacio = btn.dataset.tipo;
+    document.getElementById('simCamposEventos').style.display = simTipoEspacio === 'eventos' ? 'block' : 'none';
+    document.getElementById('simCamposTalleres').style.display = simTipoEspacio === 'talleres' ? 'block' : 'none';
+    document.getElementById('simLineaSena').style.display = simTipoEspacio === 'eventos' ? 'flex' : 'none';
+    calcularSimulador();
+  });
+});
+
+['simCapacidad','simFranja','simCategoria','simHoras'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calcularSimulador);
+});
+
+function calcularSimulador(){
+  let alquiler = 0, sena = 0;
+  if(simTipoEspacio === 'eventos'){
+    const cap = Number(document.getElementById('simCapacidad').value);
+    const franja = Number(document.getElementById('simFranja').value);
+    const categoria = document.getElementById('simCategoria').value;
+    const tabla = TARIFAS_SIM[categoria];
+    if(tabla && tabla[cap]){
+      alquiler = tabla[cap][franja];
+      sena = categoria === 'socio' ? SENA_SOCIO_SIM : SENA_PARTICULAR_SIM;
+    } else {
+      document.getElementById('simAlquiler').textContent = '—';
+      document.getElementById('simSena').textContent = '—';
+      document.getElementById('simTotal').textContent = '—';
+      return;
+    }
+  } else {
+    const horas = Math.max(1, Number(document.getElementById('simHoras').value) || 1);
+    alquiler = horas * PRECIO_HORA_TALLER_SIM;
+    sena = 0;
+  }
+  document.getElementById('simAlquiler').textContent = formatoPesos(alquiler);
+  document.getElementById('simSena').textContent = formatoPesos(sena);
+  document.getElementById('simTotal').textContent = formatoPesos(alquiler);
+}
+calcularSimulador();
+
+/* ============ Calendario + listado mensual ============ */
+function inicializarSelectMeses(){
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const selMes = document.getElementById('calMes');
+  meses.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = m;
+    selMes.appendChild(opt);
+  });
+  const hoy = new Date();
+  selMes.value = hoy.getMonth() + 1;
+
+  const selAnio = document.getElementById('calAnio');
+  for(let a = hoy.getFullYear() - 1; a <= hoy.getFullYear() + 2; a++){
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    if(a === hoy.getFullYear()) opt.selected = true;
+    selAnio.appendChild(opt);
+  }
+
+  cargarCalendarioYListado();
+}
+
+document.getElementById('btnCargarCalendario').addEventListener('click', cargarCalendarioYListado);
+document.getElementById('btnImprimirListado').addEventListener('click', () => window.print());
+
+function cargarCalendarioYListado(){
+  const tipo = document.getElementById('calTipoEspacio').value;
+  const anio = Number(document.getElementById('calAnio').value);
+  const mes = Number(document.getElementById('calMes').value);
+
+  fetch(`${URL_BACKEND}?accion=obtenerEventosMes&tipo=${tipo}&anio=${anio}&mes=${mes}`)
+    .then(res => res.json())
+    .then(data => generarMiniCalendario(anio, mes, data.eventos || []))
+    .catch(err => console.error(err));
+
+  fetch(`${URL_BACKEND}?accion=obtenerReservasDelMes&emailAdmin=${encodeURIComponent(emailAdmin)}&tipo=${tipo}&anio=${anio}&mes=${mes}`)
+    .then(res => res.json())
+    .then(data => renderListadoMensual(data.reservas || [], tipo, anio, mes))
+    .catch(err => console.error(err));
+}
+
+function generarMiniCalendario(anio, mes, eventos){
+  const diasConEventos = new Set(eventos.map(ev => new Date(ev.inicio).getDate()));
+  const grid = document.getElementById('miniCalGrid');
+  grid.innerHTML = '';
+
+  const primerDia = new Date(anio, mes - 1, 1);
+  const ultimoDia = new Date(anio, mes, 0);
+  let offset = primerDia.getDay() - 1;
+  if(offset < 0) offset = 6;
+
+  for(let i = 0; i < offset; i++){
+    const vacio = document.createElement('div');
+    vacio.className = 'mini-cal-day empty';
+    grid.appendChild(vacio);
+  }
+  for(let d = 1; d <= ultimoDia.getDate(); d++){
+    const celda = document.createElement('div');
+    celda.textContent = d;
+    celda.className = 'mini-cal-day' + (diasConEventos.has(d) ? ' con-eventos' : '');
+    grid.appendChild(celda);
+  }
+}
+
+function renderListadoMensual(lista, tipo, anio, mes){
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('tituloListado').textContent =
+    `${tipo === 'eventos' ? 'Salón de eventos' : 'Salón de talleres'} — ${meses[mes-1]} ${anio}`;
+
+  const tbody = document.getElementById('tablaListadoBody');
+  if(lista.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" class="vacio">No hay eventos cargados para este mes.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  lista.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const fechaTxt = inicio.toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fechaTxt}</td><td>${horaTxt}</td><td>${r.nombre_solicitante}</td>
+      <td>${r.capacidad_personas || '—'}</td>
+      <td><span class="tag ${r.estado_reserva === 'aprobada' ? 'aprobado' : 'pendiente'}">${r.estado_reserva}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ============ Tickets ============ */
+function cargarTickets(){
+  fetch(`${URL_BACKEND}?accion=obtenerTicketsAdmin&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderTickets(data.tickets || []); })
+    .catch(err => console.error(err));
+}
+
+function renderTickets(lista){
+  const abiertos = lista.filter(t => t.estado_ticket === 'abierto').length;
+  document.getElementById('badgeTickets').textContent = abiertos;
+  const cont = document.getElementById('listaTickets');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no hay consultas.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${t.asunto}</div>
+        <div class="card-sub">${t.nombre_usuario ? t.nombre_usuario + ' · ' : ''}${t.email_usuario} · ${t.fecha_creacion}</div></div>
+        <span class="tag ${t.estado_ticket}">${t.estado_ticket}</span>
+      </div>
+      <p style="font-size:14px;color:var(--ink);margin-bottom:6px;">${t.mensaje}</p>
+      ${t.estado_ticket === 'respondido'
+        ? `<div class="respuesta-mostrada"><strong>Tu respuesta:</strong> ${t.respuesta_admin}</div>`
+        : `<div class="ticket-respuesta">
+             <textarea rows="2" placeholder="Escribí tu respuesta..." data-id="${t.id_ticket}"></textarea>
+             <button class="btn-secundario btn-responder" data-id="${t.id_ticket}">Responder</button>
+           </div>`
+      }`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('.btn-responder').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const textarea = cont.querySelector(`textarea[data-id="${btn.dataset.id}"]`);
+      const respuesta = textarea.value.trim();
+      if(!respuesta){ alert('Escribí una respuesta antes de enviar.'); return; }
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'responderTicket', emailAdmin, idTicket: btn.dataset.id, respuesta
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarTickets(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
 }
