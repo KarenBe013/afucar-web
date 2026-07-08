@@ -87,6 +87,11 @@
     transition:background .2s;
   }
   .btn-login:hover{background:var(--gold-soft);}
+  #areaUsuarioHeader{
+    display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:13.5px;color:#dfe4ec;
+  }
+  #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;font-size:13px;}
+  #areaUsuarioHeader a:hover{color:var(--gold);}
 
   @media (max-width:1080px){
     nav{display:none;}
@@ -608,6 +613,10 @@
     <div id="areaLoginHeader">
       <div class="g_id_signin" data-type="standard" data-size="medium"></div>
     </div>
+    <div id="areaUsuarioHeader" style="display:none;">
+      <span id="nombreUsuarioHeader"></span>
+      <a href="#" id="btnCerrarSesionHeader">Cerrar sesión</a>
+    </div>
   </div>
 </header>
 
@@ -652,7 +661,7 @@
         </ul>
         <p class="extras-titulo">Precios de referencia (informativo)</p>
         <ul class="extras-lista">
-          <li><span>Champagnera grande de pie para hielo y bebidas</span><span>$500 la noche</span></li>
+          <li><span>Conservadora para hielo y bebidas</span><span>$500 la noche</span></li>
           <li><span>Leña (el atado)</span><span>$70</span></li>
           <li><span>Carbón</span><span>$180</span></li>
           <li><span>Manteles TNT</span><span>$60</span></li>
@@ -920,17 +929,16 @@ function handleCredentialResponseReal(response){
       document.getElementById('areaLoginHeader').style.display = 'none';
       document.querySelector('.demo-toggle').style.display = 'none';
 
+      document.getElementById('nombreUsuarioHeader').textContent = `${usuarioReal.nombre} ${usuarioReal.apellido}`;
+      document.getElementById('areaUsuarioHeader').style.display = 'flex';
+
       const okBanner = document.getElementById('loginOkBanner');
       let avisoEstado = '';
       if(usuarioReal.categoria_solicitada !== 'particular' && usuarioReal.estado_categoria !== 'aprobado'){
         avisoEstado = ' — tu membresía todavía está pendiente de aprobación, mientras tanto se te aplica el precio de Particular.';
       }
-      okBanner.innerHTML = `✅ Conectado como <strong>${usuarioReal.nombre} ${usuarioReal.apellido}</strong>${avisoEstado} · <a href="#" id="btnCerrarSesion" style="color:#e8c766;text-decoration:underline;">Cerrar sesión</a>`;
+      okBanner.innerHTML = `✅ Conectado como <strong>${usuarioReal.nombre} ${usuarioReal.apellido}</strong>${avisoEstado}`;
       okBanner.style.display = 'block';
-      document.getElementById('btnCerrarSesion').addEventListener('click', (ev) => {
-        ev.preventDefault();
-        cerrarSesion();
-      });
 
       actualizarEtiquetaCategoria();
       actualizarSimulador();
@@ -938,6 +946,11 @@ function handleCredentialResponseReal(response){
     })
     .catch(err => console.error('Error al verificar sesión:', err));
 }
+
+document.getElementById('btnCerrarSesionHeader').addEventListener('click', (ev) => {
+  ev.preventDefault();
+  cerrarSesion();
+});
 
 // --- Vista de prueba (solo si todavía no hay sesión real) ---
 document.getElementById('selectVistaPrueba').addEventListener('change', (e) => {
@@ -981,6 +994,7 @@ function cerrarSesion(){
   document.getElementById('loginGateBanner').style.display = 'flex';
   document.getElementById('loginGateBanner').innerHTML = `<span>🔒 Iniciá sesión con Google (botón de arriba) para simular tu presupuesto y hacer una reserva.</span>`;
   document.getElementById('areaLoginHeader').style.display = 'block';
+  document.getElementById('areaUsuarioHeader').style.display = 'none';
   document.querySelector('.demo-toggle').style.display = 'flex';
   document.getElementById('selectVistaPrueba').value = 'visitante';
 
