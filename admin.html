@@ -327,7 +327,14 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
         Eventos ya aprobados del salón de eventos. Cargá lo consumido/roto para calcular cuánto hay que devolver de la seña,
         y confirmá cuando ya hayas hecho la devolución.
       </p>
+      <button class="btn-secundario" id="btnVerHistorial" style="margin-bottom:20px;">Ver historial de devoluciones</button>
+
       <div id="listaCierre" class="cargando">Cargando eventos...</div>
+
+      <div id="historialCont" style="display:none;">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin:24px 0 12px;">Historial de devoluciones realizadas</h3>
+        <div id="tablaHistorialCont" class="cargando">Cargando historial...</div>
+      </div>
     </div>
 
   </div>
@@ -335,7 +342,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 </div>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwUZLmI5TIN7pSBRjY6IEDeXakHAexsr-FLZChysUg2uFuDmJ9qaitT5fId8LlfbqPH/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyFZTo07a_gVSC1wYehPk5b5HD_YF6fRejOYPYuoo5Ae2mKLzTkPAyhPKcf_bVWE0yl/exec";
 let emailAdmin = null;
 
 function handleCredentialResponseAdmin(response){
@@ -891,10 +898,57 @@ function renderCierre(lista){
         accion:'confirmarDevolucion', emailAdmin, idReserva: btn.dataset.id
       })})
       .then(res => res.json())
-      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarCierre(); })
+      .then(data => {
+        if(data.error){ alert(data.error); btn.disabled=false; return; }
+        cargarCierre();
+        if(historialVisible) cargarHistorialDevoluciones();
+      })
       .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
+}
+
+/* ============ Historial de devoluciones ============ */
+let historialVisible = false;
+
+document.getElementById('btnVerHistorial').addEventListener('click', () => {
+  historialVisible = !historialVisible;
+  const cont = document.getElementById('historialCont');
+  const btn = document.getElementById('btnVerHistorial');
+  if(historialVisible){
+    cont.style.display = 'block';
+    btn.textContent = 'Ocultar historial';
+    cargarHistorialDevoluciones();
+  } else {
+    cont.style.display = 'none';
+    btn.textContent = 'Ver historial de devoluciones';
+  }
+});
+
+function cargarHistorialDevoluciones(){
+  fetch(`${URL_BACKEND}?accion=obtenerHistorialDevoluciones&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderHistorial(data.historial || []); })
+    .catch(err => console.error(err));
+}
+
+function renderHistorial(lista){
+  const cont = document.getElementById('tablaHistorialCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no hay devoluciones confirmadas.</p>'; return; }
+
+  let html = `<table class="tabla"><thead><tr>
+    <th>Evento</th><th>Fecha del evento</th><th>Seña</th><th>Consumo/roturas</th><th>Devuelto</th><th>Fecha de devolución</th>
+  </tr></thead><tbody>`;
+  lista.forEach(h => {
+    const fechaEvento = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    html += `<tr>
+      <td>${h.nombre_solicitante}</td><td>${fechaEvento}</td>
+      <td>${formatoPesos(h.monto_sena)}</td><td>${formatoPesos(h.monto_consumido)}</td>
+      <td>${formatoPesos(h.sena_a_devolver)}</td><td>${h.fecha_devolucion}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
 }
 </script>
 
