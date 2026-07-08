@@ -48,7 +48,20 @@
     <p>Hola ${data.nombre} ${data.apellido} (${email})</p>
     <p>Categoría: ${data.categoria_solicitada} — Estado: ${data.estado_categoria}</p>
     <p><a href="#" id="btnCerrarSesion" style="color:#0f2a4a;">Cerrar sesión</a></p>
+
+    <hr style="margin:20px 0;">
+
+    <h3>Consultas</h3>
+    <form id="formTicket">
+      <p><input type="text" id="ticketAsunto" placeholder="Asunto" required style="width:100%;max-width:400px;"></p>
+      <p><textarea id="ticketMensaje" placeholder="Escribí tu consulta..." rows="3" required style="width:100%;max-width:400px;"></textarea></p>
+      <button type="submit">Enviar consulta</button>
+    </form>
+    <p id="mensajeTicket"></p>
+
+    <div id="misTickets">Cargando tus consultas...</div>
   `;
+
   document.getElementById('btnCerrarSesion').addEventListener('click', function(e){
     e.preventDefault();
     if (window.google && google.accounts && google.accounts.id) {
@@ -56,6 +69,65 @@
     }
     document.getElementById('contenido').innerHTML = '<p>Sesión cerrada. Recargá la página para volver a ingresar.</p>';
   });
+
+  document.getElementById('formTicket').addEventListener('submit', function(e){
+    e.preventDefault();
+    const asunto = document.getElementById('ticketAsunto').value.trim();
+    const mensaje = document.getElementById('ticketMensaje').value.trim();
+    document.getElementById('mensajeTicket').textContent = 'Enviando...';
+
+    fetch(URL_BACKEND, {
+      method: 'POST',
+      body: JSON.stringify({
+        accion: 'crearTicket',
+        email: email,
+        nombre: `${data.nombre} ${data.apellido}`,
+        asunto: asunto,
+        mensaje: mensaje
+      })
+    })
+    .then(res => res.json())
+    .then(resp => {
+      if (resp.error) {
+        document.getElementById('mensajeTicket').textContent = resp.error;
+        return;
+      }
+      document.getElementById('mensajeTicket').textContent = '¡Consulta enviada! Te va a aparecer abajo con la respuesta cuando la tengamos.';
+      document.getElementById('formTicket').reset();
+      cargarMisTickets(email);
+    })
+    .catch(err => {
+      document.getElementById('mensajeTicket').textContent = 'Error al enviar la consulta.';
+      console.error(err);
+    });
+  });
+
+  cargarMisTickets(email);
+}
+
+function cargarMisTickets(email){
+  fetch(`${URL_BACKEND}?accion=obtenerTicketsUsuario&email=${encodeURIComponent(email)}`)
+    .then(res => res.json())
+    .then(data => {
+      const tickets = data.tickets || [];
+      const cont = document.getElementById('misTickets');
+      if (tickets.length === 0) {
+        cont.innerHTML = '<p>Todavía no hiciste ninguna consulta.</p>';
+        return;
+      }
+      let html = '<h4>Tus consultas</h4>';
+      tickets.forEach(t => {
+        html += `
+          <div style="border:1px solid #ccc;border-radius:4px;padding:10px;margin:10px 0;max-width:420px;">
+            <strong>${t.asunto}</strong> — ${t.estado_ticket === 'respondido' ? 'Respondido' : 'Pendiente'}<br>
+            <span style="font-size:13px;color:#666;">${t.fecha_creacion}</span>
+            <p style="margin-top:6px;">${t.mensaje}</p>
+            ${t.respuesta_admin ? `<p style="margin-top:6px;"><strong>Respuesta:</strong> ${t.respuesta_admin}</p>` : ''}
+          </div>`;
+      });
+      cont.innerHTML = html;
+    })
+    .catch(err => console.error(err));
 }
 
     function mostrarFormularioRegistro(email, nombreGoogle) {
