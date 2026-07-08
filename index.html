@@ -44,11 +44,19 @@
     }
 
     function mostrarUsuarioExistente(data, email) {
-      document.getElementById('contenido').innerHTML = `
-        <p>Hola ${data.nombre} ${data.apellido} (${email})</p>
-        <p>Categoría: ${data.categoria_solicitada} — Estado: ${data.estado_categoria}</p>
-      `;
+  document.getElementById('contenido').innerHTML = `
+    <p>Hola ${data.nombre} ${data.apellido} (${email})</p>
+    <p>Categoría: ${data.categoria_solicitada} — Estado: ${data.estado_categoria}</p>
+    <p><a href="#" id="btnCerrarSesion" style="color:#0f2a4a;">Cerrar sesión</a></p>
+  `;
+  document.getElementById('btnCerrarSesion').addEventListener('click', function(e){
+    e.preventDefault();
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
     }
+    document.getElementById('contenido').innerHTML = '<p>Sesión cerrada. Recargá la página para volver a ingresar.</p>';
+  });
+}
 
     function mostrarFormularioRegistro(email, nombreGoogle) {
       document.getElementById('contenido').innerHTML = `
