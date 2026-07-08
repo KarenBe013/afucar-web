@@ -711,6 +711,13 @@
           </div>
         </div>
 
+        <div id="bloqueFormaPago" style="display:none;">
+          <div class="tercero-check" style="margin-top:16px;">
+            <label><input type="radio" name="formaPagoSena" value="transferencia" checked> Pagar por transferencia (subo comprobante)</label>
+            <label><input type="radio" name="formaPagoSena" value="descuento_sueldo"> Descuento por sueldo</label>
+          </div>
+        </div>
+
         <div id="bloqueComprobanteSena" style="display:none;">
           <label class="sim-label" style="margin-top:16px;">Comprobante de pago de la seña</label>
           <input type="file" id="comprobanteSena" class="sim-select" accept="image/*,.pdf">
@@ -764,7 +771,7 @@
 </footer>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyeFx-4BRUxZCvFM_9Q_QFtS0MTtolgJEqrlcm-r-01Qi9I4ivvEnKvLwaQswWdMegS/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbxtKEoFZGZYq4oNMsXqNKJFaabZIAwiW7Dmc0qWZx9yUHS3-7qJb7lOTmEyLjuaU2dB/exec";
 
 /* ============ Sesión ============
    "usuarioLogueado" y "categoriaUsuario" se definen de 2 formas posibles:
@@ -1202,7 +1209,11 @@ function seleccionarSlot(slotEl, texto, info){
   document.getElementById('terceroBloque').style.display = esSocio ? 'block' : 'none';
   document.querySelector('input[name="paraQuien"][value="mi"]').checked = true;
   document.getElementById('terceroDatos').style.display = 'none';
+
+  document.getElementById('bloqueFormaPago').style.display = esSocio ? 'block' : 'none';
+  document.querySelector('input[name="formaPagoSena"][value="transferencia"]').checked = true;
   document.getElementById('bloqueComprobanteSena').style.display = tipoEspacio === 'eventos' ? 'block' : 'none';
+
   if(tipoEspacio === 'eventos') actualizarPrecioTercero(false);
 
   document.getElementById('reservaPanel').style.display = 'block';
@@ -1229,6 +1240,13 @@ document.querySelectorAll('input[name="paraQuien"]').forEach(radio => {
     const esTercero = e.target.value === 'tercero';
     document.getElementById('terceroDatos').style.display = esTercero ? 'flex' : 'none';
     actualizarPrecioTercero(esTercero);
+  });
+});
+
+document.querySelectorAll('input[name="formaPagoSena"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const esTransferencia = e.target.value === 'transferencia';
+    document.getElementById('bloqueComprobanteSena').style.display = esTransferencia ? 'block' : 'none';
   });
 });
 
@@ -1265,9 +1283,13 @@ document.getElementById('btnReservar').addEventListener('click', () => {
 
   const comentarios = document.getElementById('comentariosReserva').value.trim();
   const archivoInput = document.getElementById('comprobanteSena');
+  const esSocioParaPago = categoriaUsuario === 'socio' && tipoEspacio === 'eventos';
+  const formaPagoSena = esSocioParaPago
+    ? (document.querySelector('input[name="formaPagoSena"]:checked')?.value || 'transferencia')
+    : 'transferencia';
 
-  if(tipoEspacio === 'eventos' && (!archivoInput.files || archivoInput.files.length === 0)){
-    mostrarErrorReserva('Subí el comprobante de pago de la seña para continuar.');
+  if(tipoEspacio === 'eventos' && formaPagoSena === 'transferencia' && (!archivoInput.files || archivoInput.files.length === 0)){
+    mostrarErrorReserva('Subí el comprobante de pago de la seña, o elegí "Descuento por sueldo" si sos socio.');
     return;
   }
 
@@ -1284,6 +1306,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
       fecha: diaSeleccionado.toISOString(),
       es_tercero: esTercero,
       comentarios: comentarios,
+      forma_pago_sena: formaPagoSena,
       comprobante: comprobanteData
     };
 
@@ -1323,7 +1346,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
       });
   }
 
-  if(tipoEspacio === 'eventos'){
+  if(tipoEspacio === 'eventos' && formaPagoSena === 'transferencia'){
     const archivo = archivoInput.files[0];
     const lector = new FileReader();
     lector.onload = function(){
