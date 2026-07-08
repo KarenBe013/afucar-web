@@ -248,6 +248,11 @@
     font-weight:600;font-size:13.5px;white-space:nowrap;
   }
   .btn-outline-gold:hover{background:var(--gold);color:var(--navy-deep);}
+  .login-ok-banner{
+    margin-top:44px;background:rgba(47,158,92,.12);border:1px solid rgba(47,158,92,.35);
+    border-radius:6px;padding:14px 22px;font-size:14px;color:#bfe8cf;
+  }
+  .login-ok-banner strong{color:#fff;}
 
   .tool-tabs{display:flex;gap:10px;margin-top:22px;margin-bottom:22px;align-items:center;flex-wrap:wrap;}
   .demo-toggle{
@@ -526,6 +531,7 @@
 .estado-pill.visitante{background:rgba(90,100,114,.12);color:var(--ink-soft);}
 
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -548,7 +554,13 @@
         <li><a href="index.html#contacto">Contacto</a></li>
       </ul>
     </nav>
-    <a href="#" class="btn-login">Ingresar con Google</a>
+    <div id="g_id_onload"
+         data-client_id="622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com"
+         data-callback="handleCredentialResponseReal">
+    </div>
+    <div id="areaLoginHeader">
+      <div class="g_id_signin" data-type="standard" data-size="medium"></div>
+    </div>
   </div>
 </header>
 
@@ -572,9 +584,9 @@
     <p class="salon-note">Capacidad de 25 a 100 personas · Reglamento y condiciones de uso disponibles al reservar.</p>
 
     <div class="login-gate-banner" id="loginGateBanner">
-      <span>🔒 Iniciá sesión para simular tu presupuesto y hacer una reserva.</span>
-      <a href="#" class="btn-outline-gold">Ingresar con Google</a>
+      <span>🔒 Iniciá sesión con Google (botón de arriba) para simular tu presupuesto y hacer una reserva.</span>
     </div>
+    <div class="login-ok-banner" id="loginOkBanner" style="display:none;"></div>
 
     <div class="tool-tabs">
       <button class="tool-tab active" data-tab="eventos">Salón de eventos</button>
@@ -699,8 +711,18 @@
           </div>
         </div>
 
+        <div id="bloqueComprobanteSena" style="display:none;">
+          <label class="sim-label" style="margin-top:16px;">Comprobante de pago de la seña</label>
+          <input type="file" id="comprobanteSena" class="sim-select" accept="image/*,.pdf">
+        </div>
+
+        <label class="sim-label" style="margin-top:16px;">Comentarios (opcional)</label>
+        <textarea id="comentariosReserva" class="sim-select" rows="2" placeholder="Ej: cantidad aproximada de invitados, algo que quieras aclarar"></textarea>
+
+        <p id="reservaError" style="color:#ff8a8a;font-size:13px;display:none;margin-top:10px;"></p>
+
         <button class="btn-primary-block" id="btnReservar">Solicitar reserva</button>
-        <p class="sim-footnote">Tu reserva queda <strong>pendiente</strong> hasta que subas el comprobante de seña y la aprobemos desde el panel de administración.</p>
+        <p class="sim-footnote">Tu reserva queda <strong>pendiente</strong> hasta que la aprobemos desde el panel de administración.</p>
       </div>
     </div>
   </div>
@@ -742,14 +764,17 @@
 </footer>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbz0Hi9JEWdU72F9VC_j_3C19byyIsEQCiuKgCfrcV9AIVTxd21KkBPESqhsMQ4d5fcd/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyeFx-4BRUxZCvFM_9Q_QFtS0MTtolgJEqrlcm-r-01Qi9I4ivvEnKvLwaQswWdMegS/exec";
 
-/* ============ Vista de prueba: identidad simulada ============
-   Esto es solo para PROBAR el diseño ahora. En el sitio real, "usuarioLogueado"
-   y "categoriaUsuario" van a venir del login con Google + la hoja Usuarios;
-   el simulador nunca le va a preguntar la categoría a la persona. */
+/* ============ Sesión ============
+   "usuarioLogueado" y "categoriaUsuario" se definen de 2 formas posibles:
+   1) Real: iniciando sesión con el botón de Google de arriba (esto es lo que va a usar la gente).
+   2) Vista de prueba: el desplegable de abajo, solo para que vos puedas revisar el diseño
+      sin tener que loguearte con distintas cuentas. Si hay sesión real, tiene prioridad. */
 let usuarioLogueado = false;
-let categoriaUsuario = 'socio'; // 'socio' | 'particular' | id de una institución de CONVENIOS_DESCUENTO
+let categoriaUsuario = 'particular';
+let usuarioReal = null; // { email, nombre, apellido, categoria_solicitada, estado_categoria, id_convenio }
+let sesionReal = false;
 
 function mostrarGate(mensaje){
   alert(mensaje);
@@ -757,10 +782,68 @@ function mostrarGate(mensaje){
 
 const NOMBRES_CATEGORIA = {
   socio: 'Socio',
-  particular: 'Particular'
+  particular: 'Particular',
+  tercero: 'Tercero'
 };
 
+// --- Login real con Google ---
+function handleCredentialResponseReal(response){
+  const datos = JSON.parse(atob(response.credential.split('.')[1]));
+  const email = datos.email;
+
+  fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(!data.existe){
+        document.getElementById('loginGateBanner').innerHTML =
+          `<span>⚠️ Tu cuenta de Google todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá primero</a>, y después volvé a esta página.</span>`;
+        return;
+      }
+
+      usuarioReal = {
+        email: email,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        categoria_solicitada: data.categoria_solicitada,
+        estado_categoria: data.estado_categoria,
+        id_convenio: data.id_convenio
+      };
+      sesionReal = true;
+      usuarioLogueado = true;
+
+      // Misma lógica que usa el servidor para decidir qué precio aplica
+      if(usuarioReal.categoria_solicitada === 'particular'){
+        categoriaUsuario = 'particular';
+      } else if(usuarioReal.categoria_solicitada === 'socio' && usuarioReal.estado_categoria === 'aprobado'){
+        categoriaUsuario = 'socio';
+      } else if(usuarioReal.categoria_solicitada === 'convenio' && usuarioReal.estado_categoria === 'aprobado'){
+        categoriaUsuario = usuarioReal.id_convenio;
+      } else {
+        categoriaUsuario = 'particular'; // pendiente o rechazado
+      }
+
+      document.getElementById('loginGateBanner').style.display = 'none';
+      document.getElementById('areaLoginHeader').style.display = 'none';
+      document.querySelector('.demo-toggle').style.display = 'none';
+
+      const okBanner = document.getElementById('loginOkBanner');
+      let avisoEstado = '';
+      if(usuarioReal.categoria_solicitada !== 'particular' && usuarioReal.estado_categoria !== 'aprobado'){
+        avisoEstado = ' — tu membresía todavía está pendiente de aprobación, mientras tanto se te aplica el precio de Particular.';
+      }
+      okBanner.innerHTML = `✅ Conectado como <strong>${usuarioReal.nombre} ${usuarioReal.apellido}</strong>${avisoEstado}`;
+      okBanner.style.display = 'block';
+
+      actualizarEtiquetaCategoria();
+      actualizarSimulador();
+      generarCalendario();
+    })
+    .catch(err => console.error('Error al verificar sesión:', err));
+}
+
+// --- Vista de prueba (solo si todavía no hay sesión real) ---
 document.getElementById('selectVistaPrueba').addEventListener('change', (e) => {
+  if(sesionReal) return; // la sesión real siempre manda
   const val = e.target.value;
   if(val === 'visitante'){
     usuarioLogueado = false;
@@ -1075,7 +1158,7 @@ function mostrarSlots(fecha){
       slot.className = 'slot ' + (libre ? 'free' : 'busy');
       slot.textContent = texto + (libre ? '' : ' — ocupado');
       if(libre){
-        slot.addEventListener('click', () => seleccionarSlot(slot, texto, idx));
+        slot.addEventListener('click', () => seleccionarSlot(slot, texto, {idx: idx, rango: r}));
       }
       gridSlots.appendChild(slot);
     });
@@ -1087,7 +1170,7 @@ function mostrarSlots(fecha){
       slot.className = 'slot ' + (libre ? 'free' : 'busy');
       slot.textContent = b.texto + (libre ? '' : ' — ocupado');
       if(libre){
-        slot.addEventListener('click', () => seleccionarSlot(slot, b.texto));
+        slot.addEventListener('click', () => seleccionarSlot(slot, b.texto, {bloque: b, rango: r}));
       }
       gridSlots.appendChild(slot);
     });
@@ -1096,7 +1179,9 @@ function mostrarSlots(fecha){
   panel.style.display = 'block';
 }
 
-function seleccionarSlot(slotEl, texto){
+let slotInfoSeleccionado = null;
+
+function seleccionarSlot(slotEl, texto, info){
   if(!usuarioLogueado){
     mostrarGate('Para reservar necesitás iniciar sesión con tu cuenta de Google y tener tu registro activo.');
     return;
@@ -1105,6 +1190,9 @@ function seleccionarSlot(slotEl, texto){
   document.querySelectorAll('.slot.selected').forEach(s => s.classList.remove('selected'));
   slotEl.classList.add('selected');
   slotSeleccionado = texto;
+  slotInfoSeleccionado = info;
+
+  document.getElementById('reservaError').style.display = 'none';
 
   const fechaTxt = diaSeleccionado.toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long'});
   document.getElementById('reservaResumen').textContent =
@@ -1114,14 +1202,16 @@ function seleccionarSlot(slotEl, texto){
   document.getElementById('terceroBloque').style.display = esSocio ? 'block' : 'none';
   document.querySelector('input[name="paraQuien"][value="mi"]').checked = true;
   document.getElementById('terceroDatos').style.display = 'none';
+  document.getElementById('bloqueComprobanteSena').style.display = tipoEspacio === 'eventos' ? 'block' : 'none';
   if(tipoEspacio === 'eventos') actualizarPrecioTercero(false);
 
   document.getElementById('reservaPanel').style.display = 'block';
 }
 
 function actualizarPrecioTercero(esTercero){
+  if(!slotInfoSeleccionado || tipoEspacio !== 'eventos') return;
   const capacidad = Number(elCapacidad.value);
-  const franjaIdx = Number(elFranja.value);
+  const franjaIdx = slotInfoSeleccionado.idx;
 
   if(esTercero){
     const precio = calcularPrecioConvenio(capacidad, franjaIdx, DESCUENTO_TERCERO);
@@ -1142,22 +1232,108 @@ document.querySelectorAll('input[name="paraQuien"]').forEach(radio => {
   });
 });
 
+function mostrarErrorReserva(msg){
+  const el = document.getElementById('reservaError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
 document.getElementById('btnReservar').addEventListener('click', () => {
   if(!usuarioLogueado){
     mostrarGate('Para reservar necesitás iniciar sesión con tu cuenta de Google y tener tu registro activo.');
     return;
   }
+  if(!sesionReal){
+    mostrarGate('Estás en "Vista de prueba". Para reservar de verdad, iniciá sesión con el botón de Google de arriba.');
+    return;
+  }
+  if(!diaSeleccionado || !slotInfoSeleccionado){
+    mostrarErrorReserva('Elegí primero un día y un horario.');
+    return;
+  }
+
   const esTercero = document.querySelector('input[name="paraQuien"]:checked')?.value === 'tercero';
   if(esTercero){
     const nombre = document.getElementById('terceroNombre').value.trim();
     const apellido = document.getElementById('terceroApellido').value.trim();
     const telefono = document.getElementById('terceroTelefono').value.trim();
     if(!nombre || !apellido || !telefono){
-      alert('Completá nombre, apellido y teléfono del tercero para continuar.');
+      mostrarErrorReserva('Completá nombre, apellido y teléfono del tercero para continuar.');
       return;
     }
   }
-  alert('En la versión final, este paso te va a pedir subir el comprobante de la seña (si corresponde). La reserva queda pendiente hasta que la aprobemos desde el panel de administración.');
+
+  const comentarios = document.getElementById('comentariosReserva').value.trim();
+  const archivoInput = document.getElementById('comprobanteSena');
+
+  if(tipoEspacio === 'eventos' && (!archivoInput.files || archivoInput.files.length === 0)){
+    mostrarErrorReserva('Subí el comprobante de pago de la seña para continuar.');
+    return;
+  }
+
+  document.getElementById('reservaError').style.display = 'none';
+  const btn = document.getElementById('btnReservar');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  function enviarReserva(comprobanteData){
+    const body = {
+      accion: 'crearReserva',
+      email: usuarioReal.email,
+      tipo_espacio: tipoEspacio,
+      fecha: diaSeleccionado.toISOString(),
+      es_tercero: esTercero,
+      comentarios: comentarios,
+      comprobante: comprobanteData
+    };
+
+    if(esTercero){
+      body.tercero_nombre = document.getElementById('terceroNombre').value.trim();
+      body.tercero_apellido = document.getElementById('terceroApellido').value.trim();
+      body.tercero_telefono = document.getElementById('terceroTelefono').value.trim();
+    }
+
+    if(tipoEspacio === 'eventos'){
+      body.capacidad_personas = elCapacidad.value;
+      body.franja_idx = slotInfoSeleccionado.idx;
+    } else {
+      body.hora_inicio = slotInfoSeleccionado.rango.inicio.toISOString();
+      body.hora_fin = slotInfoSeleccionado.rango.fin.toISOString();
+    }
+
+    fetch(URL_BACKEND, { method: 'POST', body: JSON.stringify(body) })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.textContent = 'Solicitar reserva';
+        if(data.error){
+          mostrarErrorReserva(data.error);
+          return;
+        }
+        document.getElementById('reservaPanel').innerHTML =
+          `<h4>¡Listo! Tu solicitud fue enviada</h4>
+           <p class="sim-footnote">Queda <strong>pendiente</strong> hasta que la asociación revise el comprobante y la apruebe. Te va a figurar en tu cuenta cuando esté confirmada.</p>`;
+        generarCalendario(); // refresca disponibilidad, ese horario ya queda bloqueado
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.textContent = 'Solicitar reserva';
+        mostrarErrorReserva('No se pudo conectar con el servidor. Probá de nuevo.');
+        console.error(err);
+      });
+  }
+
+  if(tipoEspacio === 'eventos'){
+    const archivo = archivoInput.files[0];
+    const lector = new FileReader();
+    lector.onload = function(){
+      const base64 = lector.result.split(',')[1];
+      enviarReserva({ base64: base64, nombreArchivo: archivo.name, mimeType: archivo.type });
+    };
+    lector.readAsDataURL(archivo);
+  } else {
+    enviarReserva(null);
+  }
 });
 
 actualizarEtiquetaCategoria();
