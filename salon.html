@@ -84,7 +84,8 @@
   .btn-login{
     background:var(--gold);color:var(--navy-deep);white-space:nowrap;flex-shrink:0;
     padding:9px 18px;border-radius:4px;font-weight:700;font-size:13.5px;
-    transition:background .2s;
+    transition:background .2s;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    font-family:'Inter',sans-serif;
   }
   .btn-login:hover{background:var(--gold-soft);}
   #areaUsuarioHeader{
@@ -299,6 +300,24 @@
     border-radius:6px;padding:14px 22px;font-size:14px;color:#bfe8cf;
   }
   .login-ok-banner strong{color:#fff;}
+
+  /* ---------- Mis reservas ---------- */
+  .mis-reservas{margin-top:20px;}
+  .mis-reservas h3{font-size:16px;color:#fff;margin-bottom:14px;font-family:'Source Serif 4',serif;}
+  .reserva-card{
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:6px;
+    padding:16px 20px;margin-bottom:12px;
+  }
+  .reserva-card .rc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  .reserva-card .rc-titulo{font-size:14.5px;font-weight:600;color:#fff;}
+  .reserva-card .rc-sub{font-size:12.5px;color:#a8b2c0;margin-top:2px;}
+  .rc-estado{font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;padding:3px 9px;border-radius:3px;}
+  .rc-estado.pendiente{background:rgba(201,162,39,.18);color:var(--gold-soft);}
+  .rc-estado.aprobada{background:rgba(47,158,92,.18);color:#7ed9a0;}
+  .rc-estado.rechazada{background:rgba(181,68,46,.18);color:#e79587;}
+  .rc-pagos{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#c6cedb;}
+  .rc-pagos .ok{color:#7ed9a0;}
+  .rc-pagos .espera{color:var(--gold-soft);}
 
   .tool-tabs{display:flex;gap:10px;margin-top:22px;margin-bottom:22px;align-items:center;flex-wrap:wrap;}
   .demo-toggle{
@@ -606,12 +625,16 @@
         <li><a href="index.html#contacto">Contacto</a></li>
       </ul>
     </nav>
-    <div id="g_id_onload"
-         data-client_id="622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com"
-         data-callback="handleCredentialResponseReal">
-    </div>
     <div id="areaLoginHeader">
-      <div class="g_id_signin" data-type="standard" data-size="medium"></div>
+      <button id="btnLoginDorado" class="btn-login">
+        <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.4-3.5z"/>
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.9 19 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 6.5 29.6 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
+          <path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.5 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.1-11.3-7.6l-6.6 5.1C9.6 40.1 16.3 44.5 24 44.5z"/>
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l6.5 5.5C41 35.9 44.5 30.5 44.5 24c0-1.2-.1-2.4-.9-3.5z"/>
+        </svg>
+        Ingresar con Google
+      </button>
     </div>
     <div id="areaUsuarioHeader" style="display:none;">
       <span id="nombreUsuarioHeader"></span>
@@ -673,6 +696,8 @@
       <span>🔒 Iniciá sesión con Google (botón de arriba) para simular tu presupuesto y hacer una reserva.</span>
     </div>
     <div class="login-ok-banner" id="loginOkBanner" style="display:none;"></div>
+
+    <div id="misReservasCont" style="display:none;"></div>
 
     <div class="tool-tabs">
       <button class="tool-tab active" data-tab="eventos">Salón de eventos</button>
@@ -872,7 +897,7 @@
 </footer>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwtA1i-fpPIS5ftIBcAPNG3lURxZ_gK2XFUoDEqFxAt1MwoAD21VysskS8owZ__TeZu/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwiUnmNOIhH-vhxREmxxmPG6mOHgffRS4kMsf9x26-ekPQKfZQy2OJXBluQYR1Od3OK/exec";
 
 /* ============ Sesión ============
    "usuarioLogueado" y "categoriaUsuario" se definen de 2 formas posibles:
@@ -894,11 +919,31 @@ const NOMBRES_CATEGORIA = {
   tercero: 'Tercero'
 };
 
-// --- Login real con Google ---
-function handleCredentialResponseReal(response){
-  const datos = JSON.parse(atob(response.credential.split('.')[1]));
-  const email = datos.email;
+// --- Login real con Google (botón propio, usando el flujo de token OAuth) ---
+let tokenClientGoogle;
 
+window.addEventListener('load', () => {
+  if(!window.google || !google.accounts || !google.accounts.oauth2) return;
+  tokenClientGoogle = google.accounts.oauth2.initTokenClient({
+    client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
+    scope: 'openid email profile',
+    callback: (tokenResponse) => {
+      if(tokenResponse.error){ return; }
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+      })
+      .then(res => res.json())
+      .then(perfil => procesarLoginReal(perfil.email))
+      .catch(err => console.error('Error obteniendo perfil de Google:', err));
+    }
+  });
+});
+
+document.getElementById('btnLoginDorado').addEventListener('click', () => {
+  if(tokenClientGoogle) tokenClientGoogle.requestAccessToken();
+});
+
+function procesarLoginReal(email){
   fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
     .then(res => res.json())
     .then(data => {
@@ -948,6 +993,7 @@ function handleCredentialResponseReal(response){
       actualizarEtiquetaCategoria();
       actualizarSimulador();
       generarCalendario();
+      cargarMisReservas();
     })
     .catch(err => console.error('Error al verificar sesión:', err));
 }
@@ -1005,6 +1051,8 @@ function cerrarSesion(){
 
   document.getElementById('slotsPanel').style.display = 'none';
   document.getElementById('reservaPanel').style.display = 'none';
+  document.getElementById('misReservasCont').style.display = 'none';
+  document.getElementById('misReservasCont').innerHTML = '';
 
   actualizarEtiquetaCategoria();
   actualizarSimulador();
@@ -1524,6 +1572,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
         document.querySelectorAll('.cal-day.selected').forEach(c => c.classList.remove('selected'));
 
         generarCalendario(); // refresca disponibilidad, ese horario ya queda bloqueado
+        cargarMisReservas();
       })
       .catch(err => {
         btn.disabled = false;
@@ -1550,6 +1599,67 @@ actualizarEtiquetaCategoria();
 actualizarSimulador();
 generarCalendario();
 document.getElementById('loginGateBanner').style.display = 'flex';
+
+/* ============ Mis reservas ============ */
+function cargarMisReservas(){
+  if(!usuarioReal) return;
+  fetch(`${URL_BACKEND}?accion=obtenerMisReservas&email=${encodeURIComponent(usuarioReal.email)}`)
+    .then(res => res.json())
+    .then(data => renderMisReservas(data.reservas || []))
+    .catch(err => console.error(err));
+}
+
+function renderMisReservas(lista){
+  const cont = document.getElementById('misReservasCont');
+  if(lista.length === 0){
+    cont.style.display = 'none';
+    return;
+  }
+  cont.style.display = 'block';
+
+  let html = '<div class="mis-reservas"><h3>Mis reservas</h3>';
+  lista.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const fechaTxt = inicio.toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    const tipoTxt = r.tipo_espacio === 'eventos' ? 'Salón de eventos' : 'Salón de talleres';
+
+    let pagosHtml = '';
+    if(r.estado_reserva === 'pendiente'){
+      pagosHtml = `<div class="espera">⏳ Esperando aprobación de la garantía</div>`;
+    } else if(r.estado_reserva === 'aprobada'){
+      pagosHtml += `<div class="ok">✓ Garantía aprobada</div>`;
+      if(r.tipo_espacio === 'eventos'){
+        pagosHtml += r.pago_salon_confirmado === 'SI'
+          ? `<div class="ok">✓ Pago del salón confirmado</div>`
+          : `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
+
+        if(r.estado_devolucion === 'pendiente'){
+          pagosHtml += `<div class="espera">⏳ Devolución de garantía pendiente</div>`;
+        } else if(r.estado_devolucion === 'devuelta'){
+          pagosHtml += `<div class="ok">✓ Devolución de garantía confirmada (${formatoPesos(r.sena_a_devolver)})</div>`;
+        }
+      }
+    } else if(r.estado_reserva === 'rechazada'){
+      pagosHtml = `<div>Reserva rechazada</div>`;
+    }
+
+    html += `
+      <div class="reserva-card">
+        <div class="rc-top">
+          <div>
+            <div class="rc-titulo">${tipoTxt}</div>
+            <div class="rc-sub">${fechaTxt} · ${horaTxt}${r.capacidad_personas ? ' · ' + r.capacidad_personas + ' personas' : ''}</div>
+          </div>
+          <span class="rc-estado ${r.estado_reserva}">${r.estado_reserva}</span>
+        </div>
+        <div class="rc-pagos">${pagosHtml}</div>
+      </div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
 </script>
 
 </body>
