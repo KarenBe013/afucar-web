@@ -827,6 +827,11 @@
         <button class="btn-primary-block" id="btnReservar">Solicitar reserva</button>
         <p class="sim-footnote">Tu reserva queda <strong>pendiente</strong> hasta que la aprobemos desde el panel de administración.</p>
       </div>
+
+      <div id="confirmacionReserva" style="display:none;margin-top:20px;background:rgba(47,158,92,.12);border:1px solid rgba(47,158,92,.35);border-radius:6px;padding:18px 22px;">
+        <h4 style="color:#fff;font-size:15px;margin-bottom:6px;">¡Listo! Tu solicitud fue enviada</h4>
+        <p class="sim-footnote">Queda <strong>pendiente</strong> hasta que la asociación revise el comprobante y la apruebe. Te va a figurar en tu cuenta cuando esté confirmada.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -1331,6 +1336,8 @@ function seleccionarSlot(slotEl, texto, info){
 
   document.getElementById('reservaError').style.display = 'none';
   document.getElementById('aceptaTerminos').checked = false;
+  document.getElementById('confirmacionReserva').style.display = 'none';
+  document.getElementById('comprobanteSena').value = '';
 
   const fechaTxt = diaSeleccionado.toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long'});
   document.getElementById('reservaResumen').textContent =
@@ -1505,9 +1512,17 @@ document.getElementById('btnReservar').addEventListener('click', () => {
           mostrarErrorReserva(data.error);
           return;
         }
-        document.getElementById('reservaPanel').innerHTML =
-          `<h4>¡Listo! Tu solicitud fue enviada</h4>
-           <p class="sim-footnote">Queda <strong>pendiente</strong> hasta que la asociación revise el comprobante y la apruebe. Te va a figurar en tu cuenta cuando esté confirmada.</p>`;
+        // Ocultamos el formulario (sin destruirlo) y mostramos la confirmación aparte,
+        // así la próxima reserva vuelve a funcionar bien
+        document.getElementById('slotsPanel').style.display = 'none';
+        document.getElementById('reservaPanel').style.display = 'none';
+        document.getElementById('confirmacionReserva').style.display = 'block';
+
+        diaSeleccionado = null;
+        slotSeleccionado = null;
+        slotInfoSeleccionado = null;
+        document.querySelectorAll('.cal-day.selected').forEach(c => c.classList.remove('selected'));
+
         generarCalendario(); // refresca disponibilidad, ese horario ya queda bloqueado
       })
       .catch(err => {
