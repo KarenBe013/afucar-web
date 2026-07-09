@@ -206,6 +206,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
       <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
       <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
+      <button class="tab-btn" data-panel="panelPagoSalon">Pagos del salón <span class="badge" id="badgePagoSalon">0</span></button>
     </div>
 
     <!-- SOLICITUDES -->
@@ -337,12 +338,21 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       </div>
     </div>
 
+    <!-- PAGOS DEL SALÓN -->
+    <div id="panelPagoSalon" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Reservas ya aprobadas (garantía pagada) que todavía esperan la confirmación del pago del alquiler del salón.
+        Al confirmar, se le avisa por mail al socio/usuario.
+      </p>
+      <div id="listaPagoSalon" class="cargando">Cargando...</div>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwtA1i-fpPIS5ftIBcAPNG3lURxZ_gK2XFUoDEqFxAt1MwoAD21VysskS8owZ__TeZu/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwiUnmNOIhH-vhxREmxxmPG6mOHgffRS4kMsf9x26-ekPQKfZQy2OJXBluQYR1Od3OK/exec";
 let emailAdmin = null;
 
 function handleCredentialResponseAdmin(response){
@@ -359,6 +369,7 @@ function handleCredentialResponseAdmin(response){
   cargarConvenios();
   cargarTickets();
   cargarCierre();
+  cargarPagoSalon();
   inicializarSelectMeses();
 }
 
@@ -949,6 +960,50 @@ function renderHistorial(lista){
   });
   html += '</tbody></table>';
   cont.innerHTML = html;
+}
+
+/* ============ Pagos del salón ============ */
+function cargarPagoSalon(){
+  fetch(`${URL_BACKEND}?accion=obtenerReservasFaltaPagoSalon&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderPagoSalon(data.reservas || []); })
+    .catch(err => console.error(err));
+}
+
+function renderPagoSalon(lista){
+  document.getElementById('badgePagoSalon').textContent = lista.length;
+  const cont = document.getElementById('listaPagoSalon');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay pagos de salón pendientes de confirmar.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(r => {
+    const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">${fechaTxt}</div></div>
+      </div>
+      <div class="datos-grid">
+        <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+      </div>
+      <div class="card-acciones">
+        <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
+      </div>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('.btn-aprobar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Confirmás que ya recibiste el pago del alquiler del salón?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'confirmarPagoSalon', emailAdmin, idReserva: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarPagoSalon(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
 }
 </script>
 
