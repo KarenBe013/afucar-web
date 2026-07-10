@@ -1565,6 +1565,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
         document.getElementById('slotsPanel').style.display = 'none';
         document.getElementById('reservaPanel').style.display = 'none';
         document.getElementById('confirmacionReserva').style.display = 'block';
+        document.getElementById('confirmacionReserva').innerHTML += `<p style="color:#ffcf7a;font-size:12px;margin-top:10px;">[Diagnóstico temporal] debug_email: ${JSON.stringify(data.debug_email)}</p>`;
 
         diaSeleccionado = null;
         slotSeleccionado = null;
