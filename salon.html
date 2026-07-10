@@ -117,8 +117,9 @@
   .notif-lista{padding:6px;}
   .notif-item{
     padding:10px 12px;border-radius:5px;font-size:13px;color:var(--ink);
-    display:flex;flex-direction:column;gap:3px;
+    display:flex;flex-direction:column;gap:3px;cursor:pointer;
   }
+  .notif-item:hover{background:rgba(201,162,39,.18);}
   .notif-item.no-leida{background:rgba(201,162,39,.1);}
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
@@ -1096,6 +1097,7 @@ function cerrarSesion(){
   document.getElementById('notifBadge').style.display = 'none';
   document.getElementById('notifLista').innerHTML = '';
   notificacionesActuales = [];
+  detenerPollingNotificaciones();
 
   actualizarEtiquetaCategoria();
   actualizarSimulador();
@@ -1718,15 +1720,41 @@ function renderMisReservas(lista){
 }
 
 /* ============ Notificaciones ============ */
+let notifPollingInterval = null;
+
 function cargarNotificaciones(){
   if(!usuarioReal || !usuarioReal.email) return;
   fetch(`${URL_BACKEND}?accion=obtenerNotificaciones&email=${encodeURIComponent(usuarioReal.email)}`)
     .then(res => res.json())
     .then(data => renderNotificaciones(data.notificaciones || []))
     .catch(err => console.error(err));
+
+  // La primera vez que se llama (justo al loguearse), arrancamos el auto-refresco
+  if(!notifPollingInterval){
+    notifPollingInterval = setInterval(cargarNotificaciones, 45000); // cada 45 segundos
+  }
+}
+
+function detenerPollingNotificaciones(){
+  if(notifPollingInterval){
+    clearInterval(notifPollingInterval);
+    notifPollingInterval = null;
+  }
 }
 
 let notificacionesActuales = [];
+
+// A qué sección lleva cada tipo de notificación
+function irANotificacion(tipo){
+  document.getElementById('notifDropdown').style.display = 'none';
+  const tiposDeReserva = ['reserva_creada', 'reserva_aprobada', 'reserva_rechazada', 'pago_confirmado', 'devolucion_confirmada'];
+  if(tiposDeReserva.includes(tipo)){
+    const destino = document.getElementById('misReservasCont');
+    if(destino) destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if(tipo === 'ticket_respondido'){
+    window.location.href = 'index.html#consultas';
+  }
+}
 
 function renderNotificaciones(lista){
   notificacionesActuales = lista;
@@ -1744,12 +1772,19 @@ function renderNotificaciones(lista){
     cont.innerHTML = '<div class="notif-vacio">No tenés notificaciones todavía.</div>';
     return;
   }
-  cont.innerHTML = lista.map(n => `
-    <div class="notif-item ${n.leida === 'NO' ? 'no-leida' : ''}">
+  cont.innerHTML = lista.map((n, idx) => `
+    <div class="notif-item ${n.leida === 'NO' ? 'no-leida' : ''}" data-idx="${idx}">
       <span>${n.mensaje}</span>
       <span class="notif-fecha">${n.fecha}</span>
     </div>
   `).join('');
+
+  cont.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const n = notificacionesActuales[Number(el.dataset.idx)];
+      if(n) irANotificacion(n.tipo);
+    });
+  });
 }
 
 document.getElementById('btnNotif').addEventListener('click', (e) => {
