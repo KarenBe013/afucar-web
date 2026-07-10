@@ -127,6 +127,27 @@
     nav{display:none;}
   }
 
+  .btn-hamburguesa{
+    display:none;flex-direction:column;justify-content:center;gap:5px;
+    background:transparent;border:1px solid rgba(255,255,255,.25);border-radius:4px;
+    width:38px;height:34px;cursor:pointer;flex-shrink:0;padding:0;align-items:center;
+  }
+  .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
+  @media (max-width:1280px){
+    .btn-hamburguesa{display:flex;}
+  }
+  .mobile-nav-panel{
+    display:none;flex-direction:column;background:var(--navy-deep);
+    border-top:1px solid rgba(201,162,39,.25);border-bottom:1px solid rgba(201,162,39,.25);
+    position:relative;z-index:60;
+  }
+  .mobile-nav-panel.abierto{display:flex;}
+  .mobile-nav-panel a{
+    padding:14px 24px;color:#dfe4ec;font-size:14.5px;font-weight:500;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .mobile-nav-panel a:hover{background:rgba(255,255,255,.06);color:#fff;}
+
   /* ---------- Hero ---------- */
   .hero{
     background:linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 62%, var(--navy) 100%);
@@ -621,6 +642,9 @@
         <li><a href="#contacto">Contacto</a></li>
       </ul>
     </nav>
+    <button id="btnHamburguesa" class="btn-hamburguesa" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
     <div id="areaLoginHeader">
       <button id="btnLoginDorado" class="btn-login">
         <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;">
@@ -647,6 +671,15 @@
     </div>
   </div>
 </header>
+
+<div id="mobileNavPanel" class="mobile-nav-panel">
+  <a href="#institucional">Quiénes somos</a>
+  <a href="convenios.html">Convenios</a>
+  <a href="salon.html">Salón de eventos</a>
+  <a href="#consultas">Consultas</a>
+  <a href="comprobante.html">Comprobante</a>
+  <a href="#contacto">Contacto</a>
+</div>
 
 <section class="hero">
   <div class="hero-wrap">
@@ -828,6 +861,16 @@ const CLIENT_ID = "622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleuser
 let usuarioReal = null;
 let categoriasDescuento = [];
 let tokenClientGoogle;
+
+/* ============ Menú hamburguesa (pantallas medianas) ============ */
+document.getElementById('btnHamburguesa').addEventListener('click', () => {
+  document.getElementById('mobileNavPanel').classList.toggle('abierto');
+});
+document.querySelectorAll('#mobileNavPanel a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('mobileNavPanel').classList.remove('abierto');
+  });
+});
 
 /* ============ Login con botón dorado propio ============ */
 window.addEventListener('load', () => {
