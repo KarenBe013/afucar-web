@@ -94,6 +94,23 @@ table.tabla th{background:rgba(15,42,74,.05);text-align:left;padding:10px 14px;f
 table.tabla td{padding:10px 14px;border-top:1px solid var(--line);}
 table.tabla input[type="text"]{width:100%;border:none;background:transparent;font-size:13.5px;font-family:'Inter',sans-serif;}
 
+.grupo-mes{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  margin-bottom:12px;overflow:hidden;
+}
+.grupo-mes summary{
+  padding:14px 18px;cursor:pointer;font-size:14px;font-weight:600;color:var(--navy-deep);
+  display:flex;justify-content:space-between;align-items:center;list-style:none;
+}
+.grupo-mes summary::-webkit-details-marker{display:none;}
+.grupo-mes summary::after{content:"▾";color:var(--ink-soft);font-size:12px;}
+.grupo-mes[open] summary::after{content:"▴";}
+.grupo-mes summary .cant{
+  font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--paper);
+  padding:2px 9px;border-radius:10px;margin-left:auto;margin-right:12px;
+}
+.grupo-mes table.tabla{border:none;border-radius:0;border-top:1px solid var(--line);}
+
 .filtro-input{
   width:100%;max-width:320px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;
   font-size:13.5px;margin-bottom:16px;background:var(--paper-white);
@@ -334,6 +351,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 
       <div id="historialCont" style="display:none;">
         <h3 style="font-size:15px;color:var(--navy-deep);margin:24px 0 12px;">Historial de devoluciones realizadas</h3>
+        <input type="text" id="buscadorHistorial" class="filtro-input" placeholder="Buscar por fecha del evento (dd/mm/aaaa) o nombre...">
         <div id="tablaHistorialCont" class="cargando">Cargando historial...</div>
       </div>
     </div>
@@ -352,7 +370,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 </div>
 
 <script>
-const URL_BACKEND = "https://script.google.com/macros/s/AKfycbzcH-y64msi-NGwsVolmDsQozeCGFGNn2vCcfyi-5PjrCoJj3qh6zOXs-WXfGil7Hdv/exec";
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbwiUnmNOIhH-vhxREmxxmPG6mOHgffRS4kMsf9x26-ekPQKfZQy2OJXBluQYR1Od3OK/exec";
 let emailAdmin = null;
 
 function handleCredentialResponseAdmin(response){
@@ -936,29 +954,70 @@ document.getElementById('btnVerHistorial').addEventListener('click', () => {
   }
 });
 
+let historialCompleto = [];
+
 function cargarHistorialDevoluciones(){
   fetch(`${URL_BACKEND}?accion=obtenerHistorialDevoluciones&emailAdmin=${encodeURIComponent(emailAdmin)}`)
     .then(res => res.json())
-    .then(data => { if(data.error) return; renderHistorial(data.historial || []); })
+    .then(data => {
+      if(data.error) return;
+      historialCompleto = data.historial || [];
+      renderHistorialAgrupado(historialCompleto);
+    })
     .catch(err => console.error(err));
 }
 
-function renderHistorial(lista){
-  const cont = document.getElementById('tablaHistorialCont');
-  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no hay devoluciones confirmadas.</p>'; return; }
+document.getElementById('buscadorHistorial').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if(!q){ renderHistorialAgrupado(historialCompleto); return; }
 
-  let html = `<table class="tabla"><thead><tr>
-    <th>Evento</th><th>Fecha del evento</th><th>Seña</th><th>Consumo/roturas</th><th>Devuelto</th><th>Fecha de devolución</th>
-  </tr></thead><tbody>`;
-  lista.forEach(h => {
-    const fechaEvento = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
-    html += `<tr>
-      <td>${h.nombre_solicitante}</td><td>${fechaEvento}</td>
-      <td>${formatoPesos(h.monto_sena)}</td><td>${formatoPesos(h.monto_consumido)}</td>
-      <td>${formatoPesos(h.sena_a_devolver)}</td><td>${h.fecha_devolucion}</td>
-    </tr>`;
+  const filtrado = historialCompleto.filter(h => {
+    const fechaTxt = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    return fechaTxt.includes(q) || (h.nombre_solicitante || '').toLowerCase().includes(q);
   });
-  html += '</tbody></table>';
+  renderHistorialAgrupado(filtrado, true);
+});
+
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderHistorialAgrupado(lista, expandirTodo){
+  const cont = document.getElementById('tablaHistorialCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No se encontraron devoluciones.</p>'; return; }
+
+  // Agrupa por mes/año del EVENTO (no de la devolución), que es como se busca habitualmente
+  const grupos = {};
+  lista.forEach(h => {
+    const fecha = new Date(h.fecha);
+    const clave = `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}`;
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(h);
+  });
+
+  const clavesOrdenadas = Object.keys(grupos).sort().reverse(); // más reciente primero
+
+  let html = '';
+  clavesOrdenadas.forEach((clave, idx) => {
+    const [anio, mes] = clave.split('-');
+    const nombreMes = `${MESES_NOMBRE[Number(mes)-1]} ${anio}`;
+    const items = grupos[clave];
+    const abierto = expandirTodo || idx === 0; // el mes más reciente (o todo si hay búsqueda) arranca abierto
+
+    html += `<details class="grupo-mes" ${abierto ? 'open' : ''}>
+      <summary>${nombreMes} <span class="cant">${items.length}</span></summary>
+      <table class="tabla"><thead><tr>
+        <th>Evento</th><th>Fecha del evento</th><th>Seña</th><th>Consumo/roturas</th><th>Devuelto</th><th>Fecha de devolución</th>
+      </tr></thead><tbody>`;
+    items.forEach(h => {
+      const fechaEvento = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+      html += `<tr>
+        <td>${h.nombre_solicitante}</td><td>${fechaEvento}</td>
+        <td>${formatoPesos(h.monto_sena)}</td><td>${formatoPesos(h.monto_consumido)}</td>
+        <td>${formatoPesos(h.sena_a_devolver)}</td><td>${h.fecha_devolucion}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></details>';
+  });
+
   cont.innerHTML = html;
 }
 
