@@ -76,8 +76,8 @@
   nav ul li{flex-shrink:0;}
   nav a{
     display:inline-block;
-    font-size:13px;font-weight:500;color:#c6cedb;white-space:nowrap;
-    padding:8px 12px;border-radius:4px;
+    font-size:12.5px;font-weight:500;color:#c6cedb;white-space:nowrap;
+    padding:8px 9px;border-radius:4px;
     transition:color .15s, background .15s;
   }
   nav a:hover{color:#fff;background:rgba(255,255,255,.08);}
@@ -89,9 +89,12 @@
   }
   .btn-login:hover{background:var(--gold-soft);}
   #areaUsuarioHeader{
-    display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:13.5px;color:#dfe4ec;
+    display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;color:#dfe4ec;flex-shrink:0;
   }
-  #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;font-size:13px;}
+  #nombreUsuarioHeader{
+    max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;
+  }
+  #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;font-size:12.5px;white-space:nowrap;}
   #areaUsuarioHeader a:hover{color:var(--gold);}
 
   /* ---------- Notificaciones ---------- */
@@ -124,7 +127,7 @@
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 
-  @media (max-width:1080px){
+  @media (max-width:1220px){
     nav{display:none;}
   }
 
