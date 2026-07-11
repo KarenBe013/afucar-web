@@ -863,13 +863,14 @@ let categoriasDescuento = [];
 let tokenClientGoogle;
 
 /* ============ Sesión persistente (se mantiene al cambiar de página) ============
-   Se guarda solo el email en el navegador; los datos reales (categoría, estado, etc.)
-   siempre se vuelven a pedir al backend, así que nunca queda desactualizado. */
+   Guardamos los datos del usuario (no solo el email) para que la próxima página
+   se muestre al instante, sin esperar la respuesta del servidor. Igual se vuelve
+   a confirmar con el backend en segundo plano, así nunca queda desactualizado. */
 const SESION_KEY = 'afucarSesion';
 const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
 
-function guardarSesion(email){
-  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+function guardarSesion(datos){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ ...datos, timestamp: Date.now() }));
 }
 function refrescarSesion(){
   const raw = localStorage.getItem(SESION_KEY);
@@ -889,7 +890,7 @@ function obtenerSesionValida(){
       localStorage.removeItem(SESION_KEY);
       return null;
     }
-    return datos.email;
+    return datos; // incluye email + categoría + estado ya guardados
   }catch(e){ return null; }
 }
 function borrarSesion(){
@@ -910,10 +911,12 @@ document.querySelectorAll('#mobileNavPanel a').forEach(a => {
 
 /* ============ Login con botón dorado propio ============ */
 window.addEventListener('load', () => {
-  // Si ya había una sesión activa (de esta misma página u otra del sitio), la restauramos sola
-  const emailGuardado = obtenerSesionValida();
-  if(emailGuardado){
-    procesarLoginReal(emailGuardado, '');
+  // Si ya había una sesión guardada, mostramos esos datos AL INSTANTE (sin esperar red)...
+  const sesionCache = obtenerSesionValida();
+  if(sesionCache && sesionCache.existe){
+    aplicarDatosUsuario(sesionCache, sesionCache.email, '');
+    // ...y en paralelo confirmamos con el servidor por si algo cambió mientras tanto
+    procesarLoginReal(sesionCache.email, '');
   }
 
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
@@ -926,10 +929,7 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => {
-        guardarSesion(perfil.email);
-        procesarLoginReal(perfil.email, perfil.given_name || '');
-      })
+      .then(perfil => procesarLoginReal(perfil.email, perfil.given_name || ''))
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -962,32 +962,37 @@ document.getElementById('btnCerrarSesionHeader').addEventListener('click', () =>
 function procesarLoginReal(email, nombreGoogle){
   fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
     .then(res => res.json())
-    .then(data => {
-      document.getElementById('areaLoginHeader').style.display = 'none';
-      document.getElementById('areaUsuarioHeader').style.display = 'flex';
-      document.getElementById('loginGateBanner').style.display = 'none';
-
-      if(!data.existe){
-        usuarioReal = { email };
-        document.getElementById('nombreUsuarioHeader').textContent = email;
-        mostrarFormularioRegistro(email, nombreGoogle);
-        document.getElementById('consultasCont').innerHTML =
-          '<p style="color:var(--ink-soft);font-size:14px;">Completá tu registro arriba para poder escribirnos una consulta.</p>';
-        return;
-      }
-
-      usuarioReal = {
-        email, nombre: data.nombre, apellido: data.apellido,
-        categoria_solicitada: data.categoria_solicitada, estado_categoria: data.estado_categoria,
-        id_convenio: data.id_convenio
-      };
-      document.getElementById('nombreUsuarioHeader').textContent = `${data.nombre} ${data.apellido}`;
-      mostrarInfoCuenta(data);
-      mostrarFormularioConsulta();
-      cargarMisTickets();
-      cargarNotificaciones();
-    })
+    .then(data => aplicarDatosUsuario(data, email, nombreGoogle))
     .catch(err => console.error('Error al verificar sesión:', err));
+}
+
+function aplicarDatosUsuario(data, email, nombreGoogle){
+  document.getElementById('areaLoginHeader').style.display = 'none';
+  document.getElementById('areaUsuarioHeader').style.display = 'flex';
+  document.getElementById('loginGateBanner').style.display = 'none';
+
+  if(!data.existe){
+    usuarioReal = { email };
+    document.getElementById('nombreUsuarioHeader').textContent = email;
+    mostrarFormularioRegistro(email, nombreGoogle || '');
+    document.getElementById('consultasCont').innerHTML =
+      '<p style="color:var(--ink-soft);font-size:14px;">Completá tu registro arriba para poder escribirnos una consulta.</p>';
+    return;
+  }
+
+  usuarioReal = {
+    email, nombre: data.nombre, apellido: data.apellido,
+    categoria_solicitada: data.categoria_solicitada, estado_categoria: data.estado_categoria,
+    id_convenio: data.id_convenio
+  };
+  document.getElementById('nombreUsuarioHeader').textContent = `${data.nombre} ${data.apellido}`;
+  mostrarInfoCuenta(data);
+  mostrarFormularioConsulta();
+  cargarMisTickets();
+  cargarNotificaciones();
+
+  // Guardamos los datos completos para que la próxima página los muestre al instante
+  guardarSesion({ email, existe: true, ...usuarioReal });
 }
 
 /* ============ Notificaciones ============ */
