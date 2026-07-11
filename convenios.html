@@ -688,6 +688,39 @@ const CLIENT_ID = "622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleuser
 let usuarioReal = null;
 let esSocioAprobado = false;
 
+/* ============ Sesión persistente (se mantiene al cambiar de página) ============ */
+const SESION_KEY = 'afucarSesion';
+const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
+
+function guardarSesion(email){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+}
+function refrescarSesion(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return;
+  try{
+    const datos = JSON.parse(raw);
+    datos.timestamp = Date.now();
+    localStorage.setItem(SESION_KEY, JSON.stringify(datos));
+  }catch(e){}
+}
+function obtenerSesionValida(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return null;
+  try{
+    const datos = JSON.parse(raw);
+    if(Date.now() - datos.timestamp > SESION_DURACION_MS){
+      localStorage.removeItem(SESION_KEY);
+      return null;
+    }
+    return datos.email;
+  }catch(e){ return null; }
+}
+function borrarSesion(){
+  localStorage.removeItem(SESION_KEY);
+}
+document.addEventListener('click', refrescarSesion);
+
 /* ============ Menú hamburguesa ============ */
 document.getElementById('btnHamburguesa').addEventListener('click', () => {
   document.getElementById('mobileNavPanel').classList.toggle('abierto');
@@ -701,6 +734,11 @@ document.querySelectorAll('#mobileNavPanel a').forEach(a => {
 /* ============ Login con botón dorado propio ============ */
 let tokenClientGoogle;
 window.addEventListener('load', () => {
+  const emailGuardado = obtenerSesionValida();
+  if(emailGuardado){
+    procesarLoginReal(emailGuardado);
+  }
+
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
   tokenClientGoogle = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -711,7 +749,10 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => procesarLoginReal(perfil.email))
+      .then(perfil => {
+        guardarSesion(perfil.email);
+        procesarLoginReal(perfil.email);
+      })
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -720,6 +761,7 @@ document.getElementById('btnLoginDorado').addEventListener('click', () => {
   if(tokenClientGoogle) tokenClientGoogle.requestAccessToken();
 });
 document.getElementById('btnCerrarSesionHeader').addEventListener('click', () => {
+  borrarSesion();
   usuarioReal = null;
   esSocioAprobado = false;
   if(window.google && google.accounts && google.accounts.id){
