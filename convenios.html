@@ -692,8 +692,8 @@ let esSocioAprobado = false;
 const SESION_KEY = 'afucarSesion';
 const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
 
-function guardarSesion(email){
-  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+function guardarSesion(datos){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ ...datos, timestamp: Date.now() }));
 }
 function refrescarSesion(){
   const raw = localStorage.getItem(SESION_KEY);
@@ -713,7 +713,7 @@ function obtenerSesionValida(){
       localStorage.removeItem(SESION_KEY);
       return null;
     }
-    return datos.email;
+    return datos;
   }catch(e){ return null; }
 }
 function borrarSesion(){
@@ -734,9 +734,10 @@ document.querySelectorAll('#mobileNavPanel a').forEach(a => {
 /* ============ Login con botón dorado propio ============ */
 let tokenClientGoogle;
 window.addEventListener('load', () => {
-  const emailGuardado = obtenerSesionValida();
-  if(emailGuardado){
-    procesarLoginReal(emailGuardado);
+  const sesionCache = obtenerSesionValida();
+  if(sesionCache && sesionCache.existe){
+    aplicarDatosUsuario(sesionCache, sesionCache.email);
+    procesarLoginReal(sesionCache.email);
   }
 
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
@@ -749,10 +750,7 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => {
-        guardarSesion(perfil.email);
-        procesarLoginReal(perfil.email);
-      })
+      .then(perfil => procesarLoginReal(perfil.email))
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -780,35 +778,45 @@ document.getElementById('btnCerrarSesionHeader').addEventListener('click', () =>
 function procesarLoginReal(email){
   fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
     .then(res => res.json())
-    .then(data => {
-      document.getElementById('areaLoginHeader').style.display = 'none';
-      document.getElementById('areaUsuarioHeader').style.display = 'flex';
-      document.getElementById('loginGateBanner').style.display = 'none';
-
-      if(!data.existe){
-        document.getElementById('loginGateBanner').innerHTML =
-          `<span>⚠️ Tu cuenta todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá</a> para ver el detalle de los convenios.</span>`;
-        document.getElementById('loginGateBanner').style.display = 'block';
-        document.getElementById('nombreUsuarioHeader').textContent = email;
-        renderConvenios(conveniosCache);
-        return;
-      }
-
-      usuarioReal = { email, nombre: data.nombre, apellido: data.apellido };
-      esSocioAprobado = (data.categoria_solicitada === 'socio' && data.estado_categoria === 'aprobado');
-
-      document.getElementById('nombreUsuarioHeader').textContent = `${data.nombre} ${data.apellido}`;
-
-      if(!esSocioAprobado){
-        document.getElementById('loginGateBanner').innerHTML =
-          `<span>🔒 El detalle completo de los convenios es exclusivo para socios aprobados.</span>`;
-        document.getElementById('loginGateBanner').style.display = 'block';
-      }
-
-      renderConvenios(conveniosCache);
-      cargarNotificaciones();
-    })
+    .then(data => aplicarDatosUsuario(data, email))
     .catch(err => console.error('Error al verificar sesión:', err));
+}
+
+function aplicarDatosUsuario(data, email){
+  document.getElementById('areaLoginHeader').style.display = 'none';
+  document.getElementById('areaUsuarioHeader').style.display = 'flex';
+  document.getElementById('loginGateBanner').style.display = 'none';
+
+  if(!data.existe){
+    document.getElementById('loginGateBanner').innerHTML =
+      `<span>⚠️ Tu cuenta todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá</a> para ver el detalle de los convenios.</span>`;
+    document.getElementById('loginGateBanner').style.display = 'block';
+    document.getElementById('nombreUsuarioHeader').textContent = email;
+    renderConvenios(conveniosCache);
+    return;
+  }
+
+  usuarioReal = { email, nombre: data.nombre, apellido: data.apellido };
+  esSocioAprobado = (data.categoria_solicitada === 'socio' && data.estado_categoria === 'aprobado');
+
+  document.getElementById('nombreUsuarioHeader').textContent = `${data.nombre} ${data.apellido}`;
+
+  if(!esSocioAprobado){
+    document.getElementById('loginGateBanner').innerHTML =
+      `<span>🔒 El detalle completo de los convenios es exclusivo para socios aprobados.</span>`;
+    document.getElementById('loginGateBanner').style.display = 'block';
+  }
+
+  renderConvenios(conveniosCache);
+  cargarNotificaciones();
+
+  // Guardamos los datos completos para que la próxima página los muestre al instante
+  guardarSesion({
+    email, existe: true,
+    categoria_solicitada: data.categoria_solicitada,
+    estado_categoria: data.estado_categoria,
+    nombre: data.nombre, apellido: data.apellido
+  });
 }
 
 /* ============ Convenios (datos reales) ============ */
