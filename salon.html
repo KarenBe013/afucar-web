@@ -1008,8 +1008,8 @@ const NOMBRES_CATEGORIA = {
 const SESION_KEY = 'afucarSesion';
 const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
 
-function guardarSesion(email){
-  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+function guardarSesion(datos){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ ...datos, timestamp: Date.now() }));
 }
 function refrescarSesion(){
   const raw = localStorage.getItem(SESION_KEY);
@@ -1029,7 +1029,7 @@ function obtenerSesionValida(){
       localStorage.removeItem(SESION_KEY);
       return null;
     }
-    return datos.email;
+    return datos;
   }catch(e){ return null; }
 }
 function borrarSesion(){
@@ -1041,9 +1041,10 @@ document.addEventListener('click', refrescarSesion);
 let tokenClientGoogle;
 
 window.addEventListener('load', () => {
-  const emailGuardado = obtenerSesionValida();
-  if(emailGuardado){
-    procesarLoginReal(emailGuardado);
+  const sesionCache = obtenerSesionValida();
+  if(sesionCache && sesionCache.existe){
+    aplicarDatosUsuario(sesionCache, sesionCache.email);
+    procesarLoginReal(sesionCache.email);
   }
 
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
@@ -1056,10 +1057,7 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => {
-        guardarSesion(perfil.email);
-        procesarLoginReal(perfil.email);
-      })
+      .then(perfil => procesarLoginReal(perfil.email))
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -1072,57 +1070,62 @@ document.getElementById('btnLoginDorado').addEventListener('click', () => {
 function procesarLoginReal(email){
   fetch(`${URL_BACKEND}?accion=buscarUsuario&email=${encodeURIComponent(email)}`)
     .then(res => res.json())
-    .then(data => {
-      if(!data.existe){
-        document.getElementById('loginGateBanner').innerHTML =
-          `<span>⚠️ Tu cuenta de Google todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá primero</a>, y después volvé a esta página.</span>`;
-        return;
-      }
-
-      usuarioReal = {
-        email: email,
-        nombre: data.nombre,
-        apellido: data.apellido,
-        categoria_solicitada: data.categoria_solicitada,
-        estado_categoria: data.estado_categoria,
-        id_convenio: data.id_convenio
-      };
-      sesionReal = true;
-      usuarioLogueado = true;
-
-      // Misma lógica que usa el servidor para decidir qué precio aplica
-      if(usuarioReal.categoria_solicitada === 'particular'){
-        categoriaUsuario = 'particular';
-      } else if(usuarioReal.categoria_solicitada === 'socio' && usuarioReal.estado_categoria === 'aprobado'){
-        categoriaUsuario = 'socio';
-      } else if(usuarioReal.categoria_solicitada === 'convenio' && usuarioReal.estado_categoria === 'aprobado'){
-        categoriaUsuario = usuarioReal.id_convenio;
-      } else {
-        categoriaUsuario = 'particular'; // pendiente o rechazado
-      }
-
-      document.getElementById('loginGateBanner').style.display = 'none';
-      document.getElementById('areaLoginHeader').style.display = 'none';
-      document.querySelector('.demo-toggle').style.display = 'none';
-
-      document.getElementById('nombreUsuarioHeader').textContent = `${usuarioReal.nombre} ${usuarioReal.apellido}`;
-      document.getElementById('areaUsuarioHeader').style.display = 'flex';
-
-      const okBanner = document.getElementById('loginOkBanner');
-      let avisoEstado = '';
-      if(usuarioReal.categoria_solicitada !== 'particular' && usuarioReal.estado_categoria !== 'aprobado'){
-        avisoEstado = ' — tu membresía todavía está pendiente de aprobación, mientras tanto se te aplica el precio de Particular.';
-      }
-      okBanner.innerHTML = `✅ Conectado como <strong>${usuarioReal.nombre} ${usuarioReal.apellido}</strong>${avisoEstado}`;
-      okBanner.style.display = 'block';
-
-      actualizarEtiquetaCategoria();
-      actualizarSimulador();
-      generarCalendario();
-      cargarMisReservas();
-      cargarNotificaciones();
-    })
+    .then(data => aplicarDatosUsuario(data, email))
     .catch(err => console.error('Error al verificar sesión:', err));
+}
+
+function aplicarDatosUsuario(data, email){
+  if(!data.existe){
+    document.getElementById('loginGateBanner').innerHTML =
+      `<span>⚠️ Tu cuenta de Google todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá primero</a>, y después volvé a esta página.</span>`;
+    return;
+  }
+
+  usuarioReal = {
+    email: email,
+    nombre: data.nombre,
+    apellido: data.apellido,
+    categoria_solicitada: data.categoria_solicitada,
+    estado_categoria: data.estado_categoria,
+    id_convenio: data.id_convenio
+  };
+  sesionReal = true;
+  usuarioLogueado = true;
+
+  // Misma lógica que usa el servidor para decidir qué precio aplica
+  if(usuarioReal.categoria_solicitada === 'particular'){
+    categoriaUsuario = 'particular';
+  } else if(usuarioReal.categoria_solicitada === 'socio' && usuarioReal.estado_categoria === 'aprobado'){
+    categoriaUsuario = 'socio';
+  } else if(usuarioReal.categoria_solicitada === 'convenio' && usuarioReal.estado_categoria === 'aprobado'){
+    categoriaUsuario = usuarioReal.id_convenio;
+  } else {
+    categoriaUsuario = 'particular'; // pendiente o rechazado
+  }
+
+  document.getElementById('loginGateBanner').style.display = 'none';
+  document.getElementById('areaLoginHeader').style.display = 'none';
+  document.querySelector('.demo-toggle').style.display = 'none';
+
+  document.getElementById('nombreUsuarioHeader').textContent = `${usuarioReal.nombre} ${usuarioReal.apellido}`;
+  document.getElementById('areaUsuarioHeader').style.display = 'flex';
+
+  const okBanner = document.getElementById('loginOkBanner');
+  let avisoEstado = '';
+  if(usuarioReal.categoria_solicitada !== 'particular' && usuarioReal.estado_categoria !== 'aprobado'){
+    avisoEstado = ' — tu membresía todavía está pendiente de aprobación, mientras tanto se te aplica el precio de Particular.';
+  }
+  okBanner.innerHTML = `✅ Conectado como <strong>${usuarioReal.nombre} ${usuarioReal.apellido}</strong>${avisoEstado}`;
+  okBanner.style.display = 'block';
+
+  actualizarEtiquetaCategoria();
+  actualizarSimulador();
+  generarCalendario();
+  cargarMisReservas();
+  cargarNotificaciones();
+
+  // Guardamos los datos completos para que la próxima página los muestre al instante
+  guardarSesion({ email, existe: true, ...usuarioReal });
 }
 
 document.getElementById('btnCerrarSesionHeader').addEventListener('click', (ev) => {
