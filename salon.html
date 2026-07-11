@@ -1004,10 +1004,48 @@ const NOMBRES_CATEGORIA = {
   tercero: 'Tercero'
 };
 
+/* ============ Sesión persistente (se mantiene al cambiar de página) ============ */
+const SESION_KEY = 'afucarSesion';
+const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
+
+function guardarSesion(email){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+}
+function refrescarSesion(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return;
+  try{
+    const datos = JSON.parse(raw);
+    datos.timestamp = Date.now();
+    localStorage.setItem(SESION_KEY, JSON.stringify(datos));
+  }catch(e){}
+}
+function obtenerSesionValida(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return null;
+  try{
+    const datos = JSON.parse(raw);
+    if(Date.now() - datos.timestamp > SESION_DURACION_MS){
+      localStorage.removeItem(SESION_KEY);
+      return null;
+    }
+    return datos.email;
+  }catch(e){ return null; }
+}
+function borrarSesion(){
+  localStorage.removeItem(SESION_KEY);
+}
+document.addEventListener('click', refrescarSesion);
+
 // --- Login real con Google (botón propio, usando el flujo de token OAuth) ---
 let tokenClientGoogle;
 
 window.addEventListener('load', () => {
+  const emailGuardado = obtenerSesionValida();
+  if(emailGuardado){
+    procesarLoginReal(emailGuardado);
+  }
+
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
   tokenClientGoogle = google.accounts.oauth2.initTokenClient({
     client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
@@ -1018,7 +1056,10 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => procesarLoginReal(perfil.email))
+      .then(perfil => {
+        guardarSesion(perfil.email);
+        procesarLoginReal(perfil.email);
+      })
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -1117,6 +1158,7 @@ function actualizarEtiquetaCategoria(){
 }
 
 function cerrarSesion(){
+  borrarSesion();
   usuarioReal = null;
   sesionReal = false;
   usuarioLogueado = false;
