@@ -862,6 +862,42 @@ let usuarioReal = null;
 let categoriasDescuento = [];
 let tokenClientGoogle;
 
+/* ============ Sesión persistente (se mantiene al cambiar de página) ============
+   Se guarda solo el email en el navegador; los datos reales (categoría, estado, etc.)
+   siempre se vuelven a pedir al backend, así que nunca queda desactualizado. */
+const SESION_KEY = 'afucarSesion';
+const SESION_DURACION_MS = 10 * 60 * 1000; // 10 minutos de inactividad
+
+function guardarSesion(email){
+  localStorage.setItem(SESION_KEY, JSON.stringify({ email, timestamp: Date.now() }));
+}
+function refrescarSesion(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return;
+  try{
+    const datos = JSON.parse(raw);
+    datos.timestamp = Date.now();
+    localStorage.setItem(SESION_KEY, JSON.stringify(datos));
+  }catch(e){}
+}
+function obtenerSesionValida(){
+  const raw = localStorage.getItem(SESION_KEY);
+  if(!raw) return null;
+  try{
+    const datos = JSON.parse(raw);
+    if(Date.now() - datos.timestamp > SESION_DURACION_MS){
+      localStorage.removeItem(SESION_KEY);
+      return null;
+    }
+    return datos.email;
+  }catch(e){ return null; }
+}
+function borrarSesion(){
+  localStorage.removeItem(SESION_KEY);
+}
+// Cualquier clic en la página cuenta como actividad, y estira la sesión
+document.addEventListener('click', refrescarSesion);
+
 /* ============ Menú hamburguesa (pantallas medianas) ============ */
 document.getElementById('btnHamburguesa').addEventListener('click', () => {
   document.getElementById('mobileNavPanel').classList.toggle('abierto');
@@ -874,6 +910,12 @@ document.querySelectorAll('#mobileNavPanel a').forEach(a => {
 
 /* ============ Login con botón dorado propio ============ */
 window.addEventListener('load', () => {
+  // Si ya había una sesión activa (de esta misma página u otra del sitio), la restauramos sola
+  const emailGuardado = obtenerSesionValida();
+  if(emailGuardado){
+    procesarLoginReal(emailGuardado, '');
+  }
+
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
   tokenClientGoogle = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -884,7 +926,10 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => procesarLoginReal(perfil.email, perfil.given_name || ''))
+      .then(perfil => {
+        guardarSesion(perfil.email);
+        procesarLoginReal(perfil.email, perfil.given_name || '');
+      })
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
@@ -895,6 +940,7 @@ document.getElementById('btnLoginDorado').addEventListener('click', () => {
 });
 
 document.getElementById('btnCerrarSesionHeader').addEventListener('click', () => {
+  borrarSesion();
   usuarioReal = null;
   if(window.google && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect();
