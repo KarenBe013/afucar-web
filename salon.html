@@ -273,7 +273,8 @@
   .salon .section-head p{color:#a8b2c0;}
 
   .carrusel-salon{
-    position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
+    position:relative;aspect-ratio:16/9;max-height:380px;max-width:640px;margin:0 auto;
+    border-radius:8px;overflow:hidden;
     background:linear-gradient(140deg,#1c3a5e,#0a1f38 70%);
   }
   .carrusel-visor{
@@ -1299,6 +1300,7 @@ tabTalleres.addEventListener('click', () => cambiarTab('talleres'));
 
 function cambiarTab(tipo){
   tipoEspacio = tipo;
+  cargarCarrusel(tipo);
   tabEventos.classList.toggle('active', tipo==='eventos');
   tabTalleres.classList.toggle('active', tipo==='talleres');
   camposEventos.style.display = tipo==='eventos' ? 'block' : 'none';
@@ -1306,7 +1308,6 @@ function cambiarTab(tipo){
   lineaSena.style.display = tipo==='eventos' ? 'flex' : 'none';
   actualizarSimulador();
   generarCalendario();
-  cargarCarrusel(tipo);
 }
 
 const elCapacidad = document.getElementById('capacidad');
