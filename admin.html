@@ -260,6 +260,10 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
         <div class="form-convenio">
           <input type="text" id="nuevoConvenioNombre" placeholder="Nombre del convenio (ej: Farmacia X)">
           <input type="text" id="nuevoConvenioDesc" placeholder="Descripción breve del beneficio">
+        </div>
+        <div class="form-convenio" style="margin-top:10px;align-items:center;">
+          <label style="font-size:12.5px;color:var(--ink-soft);">Foto (opcional):</label>
+          <input type="file" id="nuevoConvenioFoto" accept="image/*">
           <button class="btn-secundario" id="btnAgregarConvenio">Agregar</button>
         </div>
       </div>
@@ -630,7 +634,10 @@ function renderConvenios(lista){
     div.className = 'card';
     div.innerHTML = `
       <div class="card-top">
-        <div><div class="card-title">${c.nombre_convenio}</div><div class="card-sub">${c.descripcion || ''}</div></div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          ${c.foto_url ? `<img src="${c.foto_url}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">` : ''}
+          <div><div class="card-title">${c.nombre_convenio}</div><div class="card-sub">${c.descripcion || ''}</div></div>
+        </div>
         <span class="tag ${c.activo === 'SI' ? 'aprobado' : 'rechazado'}">${c.activo === 'SI' ? 'Activo' : 'Inactivo'}</span>
       </div>
       <div class="card-acciones">
@@ -655,18 +662,39 @@ function renderConvenios(lista){
 document.getElementById('btnAgregarConvenio').addEventListener('click', () => {
   const nombre = document.getElementById('nuevoConvenioNombre').value.trim();
   const desc = document.getElementById('nuevoConvenioDesc').value.trim();
+  const archivoInput = document.getElementById('nuevoConvenioFoto');
   if(!nombre){ alert('Escribí el nombre del convenio.'); return; }
-  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
-    accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc
-  })})
-  .then(res => res.json())
-  .then(data => {
-    if(data.error){ alert(data.error); return; }
-    document.getElementById('nuevoConvenioNombre').value = '';
-    document.getElementById('nuevoConvenioDesc').value = '';
-    cargarConvenios();
-  })
-  .catch(err => console.error(err));
+
+  const btn = document.getElementById('btnAgregarConvenio');
+  btn.disabled = true; btn.textContent = 'Agregando...';
+
+  function enviar(fotoData){
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc, foto: fotoData
+    })})
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false; btn.textContent = 'Agregar';
+      if(data.error){ alert(data.error); return; }
+      document.getElementById('nuevoConvenioNombre').value = '';
+      document.getElementById('nuevoConvenioDesc').value = '';
+      archivoInput.value = '';
+      cargarConvenios();
+    })
+    .catch(err => { btn.disabled = false; btn.textContent = 'Agregar'; console.error(err); });
+  }
+
+  if(archivoInput.files && archivoInput.files.length > 0){
+    const archivo = archivoInput.files[0];
+    const lector = new FileReader();
+    lector.onload = function(){
+      const base64 = lector.result.split(',')[1];
+      enviar({ base64, nombreArchivo: archivo.name, mimeType: archivo.type });
+    };
+    lector.readAsDataURL(archivo);
+  } else {
+    enviar(null);
+  }
 });
 
 /* ============ Simulador ============ */
@@ -887,6 +915,34 @@ function renderTickets(lista){
   });
 }
 
+/* ============ Agrupado por mes (reutilizable) ============ */
+const MESES_NOMBRE_ADMIN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderAgrupadoPorMes_(cont, lista, obtenerFecha, renderItemHtml, mensajeVacio){
+  if(lista.length === 0){ cont.innerHTML = `<p class="vacio">${mensajeVacio}</p>`; return; }
+
+  const grupos = {};
+  lista.forEach(item => {
+    const fecha = obtenerFecha(item);
+    const clave = `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}`;
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(item);
+  });
+
+  const claves = Object.keys(grupos).sort();
+  let html = '';
+  claves.forEach(clave => {
+    const [anio, mes] = clave.split('-');
+    const nombreMes = `${MESES_NOMBRE_ADMIN[Number(mes)-1]} ${anio}`;
+    const items = grupos[clave];
+    html += `<details class="grupo-mes" open>
+      <summary>${nombreMes} <span class="cant">${items.length}</span></summary>
+      <div style="padding:14px;">${items.map(renderItemHtml).join('')}</div>
+    </details>`;
+  });
+  cont.innerHTML = html;
+}
+
 /* ============ Cierre de eventos (gastos y devolución de seña) ============ */
 function cargarCierre(){
   fetch(`${URL_BACKEND}?accion=obtenerCierreEventos&emailAdmin=${encodeURIComponent(emailAdmin)}`)
@@ -895,24 +951,15 @@ function cargarCierre(){
     .catch(err => console.error(err));
 }
 
-function renderCierre(lista){
-  document.getElementById('badgeCierre').textContent = lista.length;
-  const cont = document.getElementById('listaCierre');
-  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay eventos pasados esperando cierre.</p>'; return; }
-  cont.innerHTML = '';
+function cierreItemHtml(ev){
+  const fechaTxt = new Date(ev.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const inicio = new Date(ev.hora_inicio);
+  const fin = new Date(ev.hora_fin);
+  const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+  const yaCalculado = ev.estado_devolucion === 'pendiente' || ev.estado_devolucion === 'no_corresponde';
 
-  lista.forEach(ev => {
-    const fechaTxt = new Date(ev.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
-    const inicio = new Date(ev.hora_inicio);
-    const fin = new Date(ev.hora_fin);
-    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
-
-    const div = document.createElement('div');
-    div.className = 'card';
-
-    const yaCalculado = ev.estado_devolucion === 'pendiente' || ev.estado_devolucion === 'no_corresponde';
-
-    div.innerHTML = `
+  return `
+    <div class="card">
       <div class="card-top">
         <div><div class="card-title">${ev.nombre_solicitante}</div>
         <div class="card-sub">${fechaTxt} · ${horaTxt}</div></div>
@@ -923,7 +970,6 @@ function renderCierre(lista){
       <div class="datos-grid">
         <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
       </div>
-
       <div class="cierre-input-wrap">
         <div>
           <label>Consumo / roturas ($)</label>
@@ -931,15 +977,17 @@ function renderCierre(lista){
         </div>
         <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
       </div>
-
       ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
-
       ${ev.estado_devolucion === 'pendiente'
         ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
         : ''}
-    `;
-    cont.appendChild(div);
-  });
+    </div>`;
+}
+
+function renderCierre(lista){
+  document.getElementById('badgeCierre').textContent = lista.length;
+  const cont = document.getElementById('listaCierre');
+  renderAgrupadoPorMes_(cont, lista, ev => new Date(ev.fecha), cierreItemHtml, 'No hay eventos pasados esperando cierre.');
 
   cont.querySelectorAll('.btn-calcular').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1065,28 +1113,31 @@ function cargarPagoSalon(){
     .catch(err => console.error(err));
 }
 
-function renderPagoSalon(lista){
-  document.getElementById('badgePagoSalon').textContent = lista.length;
-  const cont = document.getElementById('listaPagoSalon');
-  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay pagos de salón pendientes de confirmar.</p>'; return; }
-  cont.innerHTML = '';
-  lista.forEach(r => {
-    const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = `
+function pagoSalonItemHtml(r){
+  const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  return `
+    <div class="card">
       <div class="card-top">
         <div><div class="card-title">${r.nombre_solicitante}</div>
         <div class="card-sub">${fechaTxt}</div></div>
       </div>
       <div class="datos-grid">
         <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+        ${r.link_comprobante_pago_salon
+          ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>`
+          : `<div><span>Comprobante</span><strong style="color:var(--ink-soft);font-weight:500;">Todavía no lo subió</strong></div>`}
       </div>
       <div class="card-acciones">
         <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
-      </div>`;
-    cont.appendChild(div);
-  });
+      </div>
+    </div>`;
+}
+
+function renderPagoSalon(lista){
+  document.getElementById('badgePagoSalon').textContent = lista.length;
+  const cont = document.getElementById('listaPagoSalon');
+  renderAgrupadoPorMes_(cont, lista, r => new Date(r.fecha), pagoSalonItemHtml, 'No hay pagos de salón pendientes de confirmar.');
+
   cont.querySelectorAll('.btn-aprobar').forEach(btn => {
     btn.addEventListener('click', () => {
       if(!confirm('¿Confirmás que ya recibiste el pago del alquiler del salón?')) return;
