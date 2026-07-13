@@ -250,6 +250,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
       <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
       <button class="tab-btn" data-panel="panelMedia">Fotos y videos</button>
+      <button class="tab-btn" data-panel="panelDirectiva">Directiva</button>
       <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
       <button class="tab-btn" data-panel="panelPagoSalon">Pagos del salón <span class="badge" id="badgePagoSalon">0</span></button>
     </div>
@@ -389,6 +390,25 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <div class="media-grid" id="mediaGrid"></div>
     </div>
 
+    <!-- DIRECTIVA -->
+    <div id="panelDirectiva" class="panel-tab">
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Agregar integrante</h3>
+        <div class="form-convenio">
+          <input type="text" id="directivaNombre" placeholder="Nombre y apellido">
+          <input type="text" id="directivaCargo" placeholder="Cargo (ej: Presidente/a)">
+          <input type="number" id="directivaOrden" placeholder="Orden (1, 2, 3...)" style="width:140px;">
+        </div>
+        <div class="form-convenio" style="margin-top:10px;align-items:center;">
+          <label style="font-size:12.5px;color:var(--ink-soft);">Foto:</label>
+          <input type="file" id="directivaFoto" accept="image/*">
+          <button class="btn-secundario" id="btnAgregarDirectiva">Agregar</button>
+        </div>
+        <p id="directivaMensaje" style="font-size:12.5px;color:var(--ink-soft);margin-top:8px;"></p>
+      </div>
+      <div class="media-grid" id="listaDirectiva"></div>
+    </div>
+
     <!-- CIERRE DE EVENTOS -->
     <div id="panelCierre" class="panel-tab">
       <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
@@ -464,6 +484,7 @@ function procesarLoginAdmin(email, nombre){
   cargarCierre();
   cargarPagoSalon();
   cargarMediaAdmin();
+  cargarDirectivaAdmin();
   inicializarSelectMeses();
 }
 
@@ -1267,6 +1288,100 @@ document.getElementById('btnSubirMedia').addEventListener('click', () => {
     });
   };
   lector.readAsDataURL(archivo);
+});
+
+/* ============ Directiva ============ */
+function cargarDirectivaAdmin(){
+  fetch(`${URL_BACKEND}?accion=obtenerDirectivaPublico`)
+    .then(res => res.json())
+    .then(data => renderDirectivaAdmin(data.directiva || []))
+    .catch(err => console.error(err));
+}
+
+function renderDirectivaAdmin(lista){
+  const cont = document.getElementById('listaDirectiva');
+  if(lista.length === 0){
+    cont.innerHTML = '<p class="vacio">Todavía no cargaste ningún integrante.</p>';
+    return;
+  }
+  cont.innerHTML = lista.map(p => `
+    <div class="media-item" style="aspect-ratio:auto;padding-bottom:10px;">
+      ${p.foto_url
+        ? `<img src="${p.foto_url}" alt="" style="aspect-ratio:1/1;">`
+        : `<div style="aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:var(--paper);color:var(--ink-soft);font-size:12px;">Sin foto</div>`}
+      <div style="padding:8px 10px 0;">
+        <div style="font-size:13px;font-weight:600;color:var(--navy-deep);">${p.nombre}</div>
+        <div style="font-size:12px;color:var(--gold);font-weight:600;">${p.cargo}</div>
+      </div>
+      <button class="media-borrar" data-id="${p.id}" title="Borrar">✕</button>
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('.media-borrar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Borrar este integrante de la directiva?')) return;
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'eliminarIntegranteDirectiva', emailAdmin, idIntegrante: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); return; } cargarDirectivaAdmin(); })
+      .catch(err => console.error(err));
+    });
+  });
+}
+
+document.getElementById('btnAgregarDirectiva').addEventListener('click', () => {
+  const nombre = document.getElementById('directivaNombre').value.trim();
+  const cargo = document.getElementById('directivaCargo').value.trim();
+  const orden = document.getElementById('directivaOrden').value.trim();
+  const archivoInput = document.getElementById('directivaFoto');
+  const msg = document.getElementById('directivaMensaje');
+  msg.textContent = '';
+
+  if(!nombre || !cargo){
+    msg.textContent = 'Completá nombre y cargo.';
+    return;
+  }
+
+  const btn = document.getElementById('btnAgregarDirectiva');
+  btn.disabled = true;
+  btn.textContent = 'Agregando...';
+
+  function enviar(fotoData){
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'agregarIntegranteDirectiva', emailAdmin, nombre, cargo, orden, foto: fotoData
+    })})
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'Agregar';
+      if(data.error){ msg.textContent = data.error; return; }
+      msg.textContent = '✓ Agregado correctamente.';
+      document.getElementById('directivaNombre').value = '';
+      document.getElementById('directivaCargo').value = '';
+      document.getElementById('directivaOrden').value = '';
+      archivoInput.value = '';
+      cargarDirectivaAdmin();
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Agregar';
+      msg.textContent = 'Error al agregar. Probá de nuevo.';
+      console.error(err);
+    });
+  }
+
+  if(archivoInput.files && archivoInput.files.length > 0){
+    const archivo = archivoInput.files[0];
+    const lector = new FileReader();
+    lector.onload = function(){
+      const base64 = lector.result.split(',')[1];
+      enviar({ base64, nombreArchivo: archivo.name, mimeType: archivo.type });
+    };
+    lector.readAsDataURL(archivo);
+  } else {
+    enviar(null);
+  }
 });
 </script>
 
