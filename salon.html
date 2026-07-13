@@ -127,7 +127,7 @@
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 
-  @media (max-width:1220px){
+  @media (max-width:1350px){
     nav{display:none;}
   }
 
@@ -137,7 +137,7 @@
     width:38px;height:34px;cursor:pointer;flex-shrink:0;padding:0;align-items:center;
   }
   .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
-  @media (max-width:1220px){
+  @media (max-width:1350px){
     .btn-hamburguesa{display:flex;}
   }
   .mobile-nav-panel{
@@ -272,10 +272,15 @@
   .salon .section-head h2{color:#fbfaf7;}
   .salon .section-head p{color:#a8b2c0;}
 
+  .carrusel-doble{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .carrusel-titulo{color:#e8c766;font-size:13px;font-weight:600;margin-bottom:10px;text-align:center;letter-spacing:.02em;}
   .carrusel-salon{
-    position:relative;aspect-ratio:16/9;max-height:380px;max-width:640px;margin:0 auto;
+    position:relative;aspect-ratio:16/9;max-height:260px;
     border-radius:8px;overflow:hidden;
     background:linear-gradient(140deg,#1c3a5e,#0a1f38 70%);
+  }
+  @media (max-width:700px){
+    .carrusel-doble{grid-template-columns:1fr;}
   }
   .carrusel-visor{
     width:100%;height:100%;display:flex;align-items:center;justify-content:center;
@@ -755,13 +760,29 @@
 
 <section class="salon" id="salon">
   <div class="section-wrap">
-    <div class="carrusel-salon" id="carruselSalon">
-      <div class="carrusel-visor" id="carruselVisor">
-        <p style="color:rgba(255,255,255,.4);font-size:13px;">Cargando fotos y videos...</p>
+    <div class="carrusel-doble">
+      <div class="carrusel-columna">
+        <h4 class="carrusel-titulo">Salón de eventos</h4>
+        <div class="carrusel-salon" id="carruselSalon_eventos">
+          <div class="carrusel-visor" id="carruselVisor_eventos">
+            <p style="color:rgba(255,255,255,.4);font-size:12.5px;">Cargando...</p>
+          </div>
+          <button class="carrusel-flecha izq" data-tipo="eventos" data-dir="-1" aria-label="Anterior">‹</button>
+          <button class="carrusel-flecha der" data-tipo="eventos" data-dir="1" aria-label="Siguiente">›</button>
+          <div class="carrusel-contador" id="carruselContador_eventos"></div>
+        </div>
       </div>
-      <button class="carrusel-flecha izq" id="carruselAnterior" aria-label="Anterior">‹</button>
-      <button class="carrusel-flecha der" id="carruselSiguiente" aria-label="Siguiente">›</button>
-      <div class="carrusel-contador" id="carruselContador"></div>
+      <div class="carrusel-columna">
+        <h4 class="carrusel-titulo">Salón de talleres</h4>
+        <div class="carrusel-salon" id="carruselSalon_talleres">
+          <div class="carrusel-visor" id="carruselVisor_talleres">
+            <p style="color:rgba(255,255,255,.4);font-size:12.5px;">Cargando...</p>
+          </div>
+          <button class="carrusel-flecha izq" data-tipo="talleres" data-dir="-1" aria-label="Anterior">‹</button>
+          <button class="carrusel-flecha der" data-tipo="talleres" data-dir="1" aria-label="Siguiente">›</button>
+          <div class="carrusel-contador" id="carruselContador_talleres"></div>
+        </div>
+      </div>
     </div>
     <p class="salon-note">Capacidad de 25 a 100 personas · Reglamento y condiciones de uso disponibles más abajo.</p>
 
@@ -1300,7 +1321,6 @@ tabTalleres.addEventListener('click', () => cambiarTab('talleres'));
 
 function cambiarTab(tipo){
   tipoEspacio = tipo;
-  cargarCarrusel(tipo);
   tabEventos.classList.toggle('active', tipo==='eventos');
   tabTalleres.classList.toggle('active', tipo==='talleres');
   camposEventos.style.display = tipo==='eventos' ? 'block' : 'none';
@@ -1998,42 +2018,42 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ============ Carrusel de fotos y videos del salón ============ */
-let carruselMedia = [];
-let carruselIndice = 0;
+/* ============ Carruseles de fotos y videos del salón (eventos + talleres, siempre visibles) ============ */
+const carruselEstado = {
+  eventos: { media: [], indice: 0 },
+  talleres: { media: [], indice: 0 }
+};
 
-function cargarCarrusel(tipo){
+function cargarCarruselTipo(tipo){
   fetch(`${URL_BACKEND}?accion=obtenerMediaSalon&tipo=${tipo}`)
     .then(res => res.json())
     .then(data => {
-      carruselMedia = data.media || [];
-      carruselIndice = 0;
-      renderCarrusel();
+      carruselEstado[tipo].media = data.media || [];
+      carruselEstado[tipo].indice = 0;
+      renderCarruselTipo(tipo);
     })
     .catch(err => console.error(err));
 }
 
-function renderCarrusel(){
-  const visor = document.getElementById('carruselVisor');
-  const contador = document.getElementById('carruselContador');
-  const flechaAnt = document.getElementById('carruselAnterior');
-  const flechaSig = document.getElementById('carruselSiguiente');
+function renderCarruselTipo(tipo){
+  const estado = carruselEstado[tipo];
+  const visor = document.getElementById(`carruselVisor_${tipo}`);
+  const contador = document.getElementById(`carruselContador_${tipo}`);
+  const flechas = document.querySelectorAll(`.carrusel-flecha[data-tipo="${tipo}"]`);
 
-  if(carruselMedia.length === 0){
-    visor.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:13px;">Todavía no hay fotos ni videos cargados para esta opción.</p>';
+  if(estado.media.length === 0){
+    visor.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:12px;text-align:center;padding:0 14px;">Todavía no hay fotos ni videos cargados.</p>';
     contador.style.display = 'none';
-    flechaAnt.style.display = 'none';
-    flechaSig.style.display = 'none';
+    flechas.forEach(f => f.style.display = 'none');
     return;
   }
 
-  const mostrarFlechas = carruselMedia.length > 1;
-  flechaAnt.style.display = mostrarFlechas ? 'flex' : 'none';
-  flechaSig.style.display = mostrarFlechas ? 'flex' : 'none';
+  const mostrarFlechas = estado.media.length > 1;
+  flechas.forEach(f => f.style.display = mostrarFlechas ? 'flex' : 'none');
   contador.style.display = 'block';
-  contador.textContent = `${carruselIndice + 1} / ${carruselMedia.length}`;
+  contador.textContent = `${estado.indice + 1} / ${estado.media.length}`;
 
-  const item = carruselMedia[carruselIndice];
+  const item = estado.media[estado.indice];
   if(item.tipo_media === 'video'){
     visor.innerHTML = `<iframe src="https://drive.google.com/file/d/${item.file_id}/preview" allow="autoplay" allowfullscreen></iframe>`;
   } else {
@@ -2041,16 +2061,19 @@ function renderCarrusel(){
   }
 }
 
-document.getElementById('carruselAnterior').addEventListener('click', () => {
-  carruselIndice = (carruselIndice - 1 + carruselMedia.length) % carruselMedia.length;
-  renderCarrusel();
-});
-document.getElementById('carruselSiguiente').addEventListener('click', () => {
-  carruselIndice = (carruselIndice + 1) % carruselMedia.length;
-  renderCarrusel();
+document.querySelectorAll('.carrusel-flecha').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tipo = btn.dataset.tipo;
+    const dir = Number(btn.dataset.dir);
+    const estado = carruselEstado[tipo];
+    if(estado.media.length === 0) return;
+    estado.indice = (estado.indice + dir + estado.media.length) % estado.media.length;
+    renderCarruselTipo(tipo);
+  });
 });
 
-cargarCarrusel('eventos');
+cargarCarruselTipo('eventos');
+cargarCarruselTipo('talleres');
 </script>
 
 </body>
