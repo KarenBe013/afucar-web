@@ -271,23 +271,30 @@
   .salon .section-eyebrow{color:var(--gold-soft);}
   .salon .section-head h2{color:#fbfaf7;}
   .salon .section-head p{color:#a8b2c0;}
-  .salon-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:26px;}
-  .salon-photo-main{
-    aspect-ratio:16/10.5;border-radius:6px;overflow:hidden;
+
+  .carrusel-salon{
+    position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
     background:linear-gradient(140deg,#1c3a5e,#0a1f38 70%);
-    position:relative;
-    display:flex;align-items:flex-end;padding:26px;
   }
-  .salon-photo-main::after{
-    content:"Foto del salón de eventos";
-    color:rgba(255,255,255,.4);font-size:12.5px;letter-spacing:.04em;
+  .carrusel-visor{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
   }
-  .salon-side{display:grid;grid-template-rows:1fr 1fr;gap:26px;}
-  .salon-photo-sub{
-    border-radius:6px;background:linear-gradient(140deg,#2a4a72,#14304f 70%);
-    display:flex;align-items:flex-end;padding:20px;
+  .carrusel-visor img, .carrusel-visor iframe{
+    width:100%;height:100%;object-fit:cover;border:none;display:block;
   }
-  .salon-photo-sub::after{content:"Foto salón de talleres";color:rgba(255,255,255,.4);font-size:12px;}
+  .carrusel-flecha{
+    position:absolute;top:50%;transform:translateY(-50%);
+    background:rgba(10,31,56,.6);color:#fff;border:none;width:40px;height:40px;
+    border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .15s;
+  }
+  .carrusel-flecha:hover{background:rgba(10,31,56,.85);}
+  .carrusel-flecha.izq{left:14px;}
+  .carrusel-flecha.der{right:14px;}
+  .carrusel-contador{
+    position:absolute;bottom:14px;right:16px;background:rgba(10,31,56,.7);color:#fff;
+    font-size:12px;padding:4px 10px;border-radius:12px;font-weight:600;
+  }
   .salon-actions{margin-top:34px;display:flex;gap:16px;flex-wrap:wrap;}
   .salon-actions a{
     border:1px solid rgba(255,255,255,.28);padding:14px 22px;border-radius:3px;
@@ -603,7 +610,7 @@
   @media (max-width:880px){
     .hero-wrap{grid-template-columns:1fr;padding-top:56px;}
     .hero-emblem{order:-1;}
-    .inst-grid, .conv-grid, .salon-grid, .directiva{grid-template-columns:1fr;}
+    .inst-grid, .conv-grid, .directiva{grid-template-columns:1fr;}
     nav{display:none;}
   }
 /* ============================================================
@@ -747,12 +754,13 @@
 
 <section class="salon" id="salon">
   <div class="section-wrap">
-    <div class="salon-grid">
-      <div class="salon-photo-main"></div>
-      <div class="salon-side">
-        <div class="salon-photo-sub"></div>
-        <div class="salon-photo-sub"></div>
+    <div class="carrusel-salon" id="carruselSalon">
+      <div class="carrusel-visor" id="carruselVisor">
+        <p style="color:rgba(255,255,255,.4);font-size:13px;">Cargando fotos y videos...</p>
       </div>
+      <button class="carrusel-flecha izq" id="carruselAnterior" aria-label="Anterior">‹</button>
+      <button class="carrusel-flecha der" id="carruselSiguiente" aria-label="Siguiente">›</button>
+      <div class="carrusel-contador" id="carruselContador"></div>
     </div>
     <p class="salon-note">Capacidad de 25 a 100 personas · Reglamento y condiciones de uso disponibles más abajo.</p>
 
@@ -1298,6 +1306,7 @@ function cambiarTab(tipo){
   lineaSena.style.display = tipo==='eventos' ? 'flex' : 'none';
   actualizarSimulador();
   generarCalendario();
+  cargarCarrusel(tipo);
 }
 
 const elCapacidad = document.getElementById('capacidad');
@@ -1987,6 +1996,60 @@ document.addEventListener('click', (e) => {
     dropdown.style.display = 'none';
   }
 });
+
+/* ============ Carrusel de fotos y videos del salón ============ */
+let carruselMedia = [];
+let carruselIndice = 0;
+
+function cargarCarrusel(tipo){
+  fetch(`${URL_BACKEND}?accion=obtenerMediaSalon&tipo=${tipo}`)
+    .then(res => res.json())
+    .then(data => {
+      carruselMedia = data.media || [];
+      carruselIndice = 0;
+      renderCarrusel();
+    })
+    .catch(err => console.error(err));
+}
+
+function renderCarrusel(){
+  const visor = document.getElementById('carruselVisor');
+  const contador = document.getElementById('carruselContador');
+  const flechaAnt = document.getElementById('carruselAnterior');
+  const flechaSig = document.getElementById('carruselSiguiente');
+
+  if(carruselMedia.length === 0){
+    visor.innerHTML = '<p style="color:rgba(255,255,255,.4);font-size:13px;">Todavía no hay fotos ni videos cargados para esta opción.</p>';
+    contador.style.display = 'none';
+    flechaAnt.style.display = 'none';
+    flechaSig.style.display = 'none';
+    return;
+  }
+
+  const mostrarFlechas = carruselMedia.length > 1;
+  flechaAnt.style.display = mostrarFlechas ? 'flex' : 'none';
+  flechaSig.style.display = mostrarFlechas ? 'flex' : 'none';
+  contador.style.display = 'block';
+  contador.textContent = `${carruselIndice + 1} / ${carruselMedia.length}`;
+
+  const item = carruselMedia[carruselIndice];
+  if(item.tipo_media === 'video'){
+    visor.innerHTML = `<iframe src="https://drive.google.com/file/d/${item.file_id}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  } else {
+    visor.innerHTML = `<img src="https://drive.google.com/thumbnail?id=${item.file_id}&sz=w1200" alt="Foto del salón">`;
+  }
+}
+
+document.getElementById('carruselAnterior').addEventListener('click', () => {
+  carruselIndice = (carruselIndice - 1 + carruselMedia.length) % carruselMedia.length;
+  renderCarrusel();
+});
+document.getElementById('carruselSiguiente').addEventListener('click', () => {
+  carruselIndice = (carruselIndice + 1) % carruselMedia.length;
+  renderCarrusel();
+});
+
+cargarCarrusel('eventos');
 </script>
 
 </body>
