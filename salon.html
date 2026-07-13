@@ -370,6 +370,19 @@
   .rc-estado.aprobada{background:rgba(47,158,92,.18);color:#7ed9a0;}
   .rc-estado.rechazada{background:rgba(181,68,46,.18);color:#e79587;}
   .rc-pagos{display:flex;flex-direction:column;gap:6px;font-size:13px;color:#c6cedb;}
+  .subir-pago-salon{
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:5px;
+    padding:10px 12px;margin:4px 0;
+  }
+  .subir-pago-salon input[type="file"]{
+    width:100%;font-size:12px;color:#c6cedb;margin-bottom:8px;
+  }
+  .btn-subir-pago{
+    background:var(--gold);color:var(--navy-deep);border:none;padding:7px 14px;border-radius:4px;
+    font-weight:700;font-size:12.5px;cursor:pointer;
+  }
+  .btn-subir-pago:hover{background:var(--gold-soft);}
+  .msg-subir-pago{font-size:12px;margin-top:6px;color:var(--gold-soft);}
   .rc-pagos .ok{color:#7ed9a0;}
   .rc-pagos .espera{color:var(--gold-soft);}
 
@@ -501,6 +514,12 @@
     font-weight:700;font-size:14.5px;cursor:pointer;margin:10px 0;
   }
   .btn-primary-block:hover{background:var(--navy-soft);}
+  .link-reglamento-pdf{
+    display:flex;align-items:center;gap:8px;background:rgba(201,162,39,.12);
+    border:1px solid rgba(201,162,39,.35);border-radius:5px;padding:11px 14px;
+    font-size:13px;font-weight:600;color:var(--gold-soft);margin:16px 0;
+  }
+  .link-reglamento-pdf:hover{background:rgba(201,162,39,.2);}
   .check-terminos{
     display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink-soft);
     margin:16px 0;line-height:1.4;cursor:pointer;
@@ -675,7 +694,7 @@
         <li><a href="convenios.html">Convenios</a></li>
         <li><a href="salon.html">Salón de eventos</a></li>
         <li><a href="index.html#consultas">Consultas</a></li>
-        <li><a href="comprobante.html">Comprobante</a></li>
+        <li><a href="comprobante.html">Comprobante de socio</a></li>
         <li><a href="index.html#contacto">Contacto</a></li>
       </ul>
     </nav>
@@ -713,7 +732,7 @@
     <a href="convenios.html">Convenios</a>
     <a href="salon.html">Salón de eventos</a>
     <a href="index.html#consultas">Consultas</a>
-    <a href="comprobante.html">Comprobante</a>
+    <a href="comprobante.html">Comprobante de socio</a>
     <a href="index.html#contacto">Contacto</a>
   </div>
 </header>
@@ -919,9 +938,13 @@
 
         <p id="reservaError" style="color:#ff8a8a;font-size:13px;display:none;margin-top:10px;"></p>
 
+        <a href="reglamento_salon.pdf" target="_blank" rel="noopener" class="link-reglamento-pdf">
+          📄 Leer aquí las reglas del salón antes de reservar
+        </a>
+
         <label class="check-terminos">
           <input type="checkbox" id="aceptaTerminos">
-          Leí y acepto el <a href="#reglamentoSeccion" id="linkReglamento" target="_self">reglamento de uso del salón</a>.
+          Leí y acepto el <a href="reglamento_salon.pdf" target="_blank" rel="noopener">reglamento de uso del salón</a>.
         </label>
 
         <button class="btn-primary-block" id="btnReservar">Solicitar reserva</button>
@@ -1772,9 +1795,18 @@ function renderMisReservas(lista){
     } else if(r.estado_reserva === 'aprobada'){
       pagosHtml += `<div class="ok">✓ Garantía aprobada</div>`;
       if(r.tipo_espacio === 'eventos'){
-        pagosHtml += r.pago_salon_confirmado === 'SI'
-          ? `<div class="ok">✓ Pago del salón confirmado</div>`
-          : `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
+        if(r.pago_salon_confirmado === 'SI'){
+          pagosHtml += `<div class="ok">✓ Pago del salón confirmado</div>`;
+        } else {
+          pagosHtml += `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
+          pagosHtml += `
+            <div class="subir-pago-salon">
+              <label class="sim-label" style="margin:8px 0 4px;color:#c6cedb;">Subí el comprobante de pago del salón</label>
+              <input type="file" class="input-comprobante-pago" data-id="${r.id_reserva}" accept="image/*,.pdf">
+              <button class="btn-subir-pago" data-id="${r.id_reserva}">Subir comprobante</button>
+              <p class="msg-subir-pago" data-id="${r.id_reserva}"></p>
+            </div>`;
+        }
 
         if(r.estado_devolucion === 'pendiente'){
           pagosHtml += `<div class="espera">⏳ Devolución de garantía pendiente</div>`;
@@ -1808,6 +1840,56 @@ function renderMisReservas(lista){
       cargarMisReservas();
     });
   }
+
+  cont.querySelectorAll('.btn-subir-pago').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const archivoInput = cont.querySelector(`.input-comprobante-pago[data-id="${id}"]`);
+      const msgEl = cont.querySelector(`.msg-subir-pago[data-id="${id}"]`);
+
+      if(!archivoInput.files || archivoInput.files.length === 0){
+        msgEl.textContent = 'Elegí un archivo primero.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Subiendo...';
+      msgEl.textContent = '';
+
+      const archivo = archivoInput.files[0];
+      const lector = new FileReader();
+      lector.onload = function(){
+        const base64 = lector.result.split(',')[1];
+        fetch(URL_BACKEND, {
+          method: 'POST',
+          body: JSON.stringify({
+            accion: 'subirComprobantePagoSalon',
+            email: usuarioReal.email,
+            idReserva: id,
+            comprobante: { base64, nombreArchivo: archivo.name, mimeType: archivo.type }
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.textContent = 'Subir comprobante';
+          if(data.error){
+            msgEl.textContent = data.error;
+            return;
+          }
+          msgEl.textContent = '✓ Comprobante subido, gracias — a la espera de confirmación.';
+          cargarMisReservas();
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btn.textContent = 'Subir comprobante';
+          msgEl.textContent = 'Error al subir. Probá de nuevo.';
+          console.error(err);
+        });
+      };
+      lector.readAsDataURL(archivo);
+    });
+  });
 }
 
 /* ============ Notificaciones ============ */
