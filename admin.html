@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de administración — AFUCAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-deep:#0a1f38; --navy:#0f2a4a; --navy-soft:#1c3a5e;
+  --gold:#c9a227; --gold-soft:#e8c766;
+  --paper:#f6f4ee; --paper-white:#fffdf9;
+  --ink:#2c333d; --ink-soft:#5a6472; --line:#dcd6c8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);line-height:1.5;}
+h1,h2,h3{font-family:'Source Serif 4',serif;}
+a{color:inherit;}
+img{display:block;}
+
+header{background:var(--navy-deep);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,162,39,.25);}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.brand img{width:40px;height:40px;border-radius:50%;flex-shrink:0;}
+.brand .name{font-family:'Source Serif 4',serif;font-size:18px;font-weight:600;white-space:nowrap;}
+.brand .sub{font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--gold-soft);line-height:1.3;max-width:260px;}
+
+#areaUsuarioHeader{display:flex;align-items:center;gap:10px;font-size:13.5px;color:#dfe4ec;}
+.btn-login{
+  background:var(--gold);color:var(--navy-deep);white-space:nowrap;flex-shrink:0;
+  padding:9px 18px;border-radius:4px;font-weight:700;font-size:13.5px;
+  transition:background .2s;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  font-family:'Inter',sans-serif;
+}
+.btn-login:hover{background:var(--gold-soft);}
+#areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;cursor:pointer;}
+
+.page-wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px;}
+.page-head{margin-bottom:28px;}
+.page-head h1{font-size:26px;color:var(--navy-deep);font-weight:600;}
+.page-head p{color:var(--ink-soft);font-size:14px;margin-top:6px;}
+
+.acceso-box{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  padding:50px;text-align:center;max-width:420px;margin:60px auto;
+}
+.acceso-box h2{font-size:19px;color:var(--navy-deep);margin-bottom:10px;}
+.acceso-box p{font-size:14px;color:var(--ink-soft);margin-bottom:22px;}
+.acceso-denegado{color:#b5442e;font-weight:600;}
+
+.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.tab-btn{
+  background:transparent;border:none;padding:12px 16px;font-size:13.5px;font-weight:600;
+  color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.tab-btn.active{color:var(--navy-deep);border-color:var(--gold);}
+.tab-btn .badge{
+  background:var(--gold);color:var(--navy-deep);font-size:11px;font-weight:700;
+  border-radius:10px;padding:1px 7px;margin-left:4px;
+}
+
+.panel-tab{display:none;}
+.panel-tab.active{display:block;}
+
+.card{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  padding:22px 24px;margin-bottom:16px;
+}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.card-title{font-size:16px;font-weight:600;color:var(--navy-deep);}
+.card-sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+.tag{
+  display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(15,42,74,.06);color:var(--navy);padding:3px 9px;border-radius:3px;font-weight:700;
+}
+.tag.aprobado{background:rgba(47,158,92,.12);color:#1f7a45;}
+.tag.pendiente{background:rgba(201,162,39,.15);color:#a4801f;}
+.tag.rechazado{background:rgba(181,68,46,.1);color:#b5442e;}
+.tag.abierto{background:rgba(201,162,39,.15);color:#a4801f;}
+.tag.respondido{background:rgba(47,158,92,.12);color:#1f7a45;}
+
+.datos-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 20px;
+  font-size:13.5px;margin-bottom:16px;
+}
+.datos-grid div span{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px;}
+.datos-grid div strong{color:var(--ink);font-weight:600;}
+.card-acciones{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.btn-aprobar{background:#2f9e5c;color:#fff;border:none;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-aprobar:hover{background:#268049;}
+.btn-rechazar{background:transparent;color:#b5442e;border:1px solid #b5442e;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-rechazar:hover{background:#fdf0ee;}
+.btn-secundario{background:var(--navy);color:#fff;border:none;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-secundario:hover{background:var(--navy-soft);}
+.link-comprobante{font-size:13px;color:var(--navy);text-decoration:underline;font-weight:600;}
+.vacio{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
+.cargando{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
+
+table.tabla{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--paper-white);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+table.tabla th{background:rgba(15,42,74,.05);text-align:left;padding:10px 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);}
+table.tabla td{padding:10px 14px;border-top:1px solid var(--line);}
+table.tabla input[type="text"]{width:100%;border:none;background:transparent;font-size:13.5px;font-family:'Inter',sans-serif;}
+
+.grupo-mes{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  margin-bottom:12px;overflow:hidden;
+}
+.grupo-mes summary{
+  padding:14px 18px;cursor:pointer;font-size:14px;font-weight:600;color:var(--navy-deep);
+  display:flex;justify-content:space-between;align-items:center;list-style:none;
+}
+.grupo-mes summary::-webkit-details-marker{display:none;}
+.grupo-mes summary::after{content:"▾";color:var(--ink-soft);font-size:12px;}
+.grupo-mes[open] summary::after{content:"▴";}
+.grupo-mes summary .cant{
+  font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--paper);
+  padding:2px 9px;border-radius:10px;margin-left:auto;margin-right:12px;
+}
+.grupo-mes table.tabla{border:none;border-radius:0;border-top:1px solid var(--line);}
+
+.filtro-input{
+  width:100%;max-width:320px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;
+  font-size:13.5px;margin-bottom:16px;background:var(--paper-white);
+}
+
+.sim-box{background:var(--navy-deep);color:#fff;border-radius:8px;padding:30px;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;}
+.sim-field label{display:block;font-size:12px;color:#a8b2c0;margin:14px 0 6px;}
+.sim-field label:first-child{margin-top:0;}
+.sim-field select,.sim-field input{
+  width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.2);border-radius:4px;
+  background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-family:'Inter',sans-serif;
+}
+.sim-field select option{color:#111;}
+.sim-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.sim-tab-btn{background:transparent;border:1px solid rgba(255,255,255,.25);color:#c6cedb;padding:8px 16px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;}
+.sim-tab-btn.active{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.sim-resultado{background:rgba(255,255,255,.05);border-radius:6px;padding:20px;}
+.sim-resultado .linea{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:14px;}
+.sim-resultado .total strong{color:var(--gold-soft);font-size:22px;font-family:'Source Serif 4',serif;}
+
+.cal-controles{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.cal-controles select{padding:8px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;background:var(--paper-white);}
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;margin-bottom:24px;}
+.mini-cal-day{aspect-ratio:1/1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;background:var(--paper-white);border:1px solid var(--line);color:var(--ink-soft);}
+.mini-cal-day.empty{background:transparent;border:none;}
+.mini-cal-day.con-eventos{background:rgba(201,162,39,.18);color:var(--navy-deep);border-color:var(--gold);}
+.mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;font-size:10px;color:var(--ink-soft);text-transform:uppercase;text-align:center;margin-bottom:6px;font-weight:600;}
+
+.form-convenio{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+.media-item{
+  position:relative;border-radius:6px;overflow:hidden;aspect-ratio:1/1;
+  background:var(--paper);border:1px solid var(--line);
+}
+.media-item img{width:100%;height:100%;object-fit:cover;display:block;}
+.media-badge{
+  position:absolute;bottom:6px;left:6px;background:rgba(10,31,56,.8);color:#fff;
+  font-size:10.5px;padding:2px 7px;border-radius:3px;font-weight:600;
+}
+.media-borrar{
+  position:absolute;top:6px;right:6px;background:rgba(181,68,46,.9);color:#fff;border:none;
+  width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;
+}
+.media-borrar:hover{background:#b5442e;}
+.form-convenio input{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;}
+
+.ticket-respuesta{margin-top:14px;display:flex;gap:10px;}
+.ticket-respuesta textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;}
+.respuesta-mostrada{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-top:10px;color:var(--ink-soft);}
+.respuesta-mostrada strong{color:var(--ink);}
+
+.cierre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;font-size:13.5px;margin-bottom:16px;}
+.cierre-input-wrap{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+.cierre-input-wrap label{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:4px;}
+.cierre-input-wrap input{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;width:160px;}
+.resultado-devolucion{
+  background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-bottom:14px;
+}
+.resultado-devolucion strong{color:var(--navy-deep);}
+
+.mini-cal-day{cursor:default;}
+.mini-cal-day.con-eventos{cursor:pointer;}
+.mini-cal-day.dia-seleccionado{background:var(--gold);color:var(--navy-deep);border-color:var(--gold);}
+.detalle-dia{
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  padding:18px 20px;margin-bottom:24px;max-width:420px;
+}
+.detalle-dia h4{font-size:14px;color:var(--navy-deep);margin-bottom:10px;}
+.detalle-dia .item{padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;}
+.detalle-dia .item:first-of-type{border-top:none;}
+
+@media print{
+  header, .tabs, .page-head, #estadoAcceso{display:none!important;}
+  .panel-tab{display:none!important;}
+  .panel-tab.imprimir-activo{display:block!important;}
+}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="brand">
+    <img src="data:image/jpeg;base64,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" alt="Escudo AFUCAR">
+    <div>
+      <div class="sub">Asociación de Funcionarios de la Cámara de Representantes</div>
+      <div class="name">AFUCAR — Administración</div>
+    </div>
+  </a>
+  <div id="areaLoginHeader">
+    <button id="btnLoginDorado" class="btn-login">
+      <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;">
+        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.4-3.5z"/>
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.9 19 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 6.5 29.6 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
+        <path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.5 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.1-11.3-7.6l-6.6 5.1C9.6 40.1 16.3 44.5 24 44.5z"/>
+        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l6.5 5.5C41 35.9 44.5 30.5 44.5 24c0-1.2-.1-2.4-.9-3.5z"/>
+      </svg>
+      Ingresar con Google
+    </button>
+  </div>
+  <div id="areaUsuarioHeader" style="display:none;">
+    <span id="nombreUsuarioHeader"></span>
+    <a id="btnCerrarSesionHeader">Cerrar sesión</a>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <div id="estadoAcceso">
+    <div class="acceso-box">
+      <h2>Panel de administración</h2>
+      <p>Iniciá sesión con la cuenta de administrador para continuar.</p>
+    </div>
+  </div>
+
+  <div id="panelAdmin" style="display:none;">
+    <div class="page-head">
+      <h1>Panel de administración</h1>
+      <p>Gestioná socios, convenios, reservas, consultas y presupuestos del salón.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-panel="panelSolicitudes">Solicitudes <span class="badge" id="badgeSolicitudes">0</span></button>
+      <button class="tab-btn" data-panel="panelReservas">Reservas pendientes <span class="badge" id="badgeReservas">0</span></button>
+      <button class="tab-btn" data-panel="panelSocios">Socios</button>
+      <button class="tab-btn" data-panel="panelConvenios">Convenios</button>
+      <button class="tab-btn" data-panel="panelSimulador">Simulador</button>
+      <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
+      <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
+      <button class="tab-btn" data-panel="panelMedia">Fotos y videos</button>
+      <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
+      <button class="tab-btn" data-panel="panelPagoSalon">Pagos del salón <span class="badge" id="badgePagoSalon">0</span></button>
+    </div>
+
+    <!-- SOLICITUDES -->
+    <div id="panelSolicitudes" class="panel-tab active">
+      <div id="listaSocios" class="cargando">Cargando solicitudes...</div>
+    </div>
+
+    <!-- RESERVAS PENDIENTES -->
+    <div id="panelReservas" class="panel-tab">
+      <div id="listaReservas" class="cargando">Cargando reservas...</div>
+    </div>
+
+    <!-- SOCIOS (listado completo) -->
+    <div id="panelSocios" class="panel-tab">
+      <input type="text" id="filtroSocios" class="filtro-input" placeholder="Buscar por nombre, email o CI...">
+      <div id="tablaSociosCont" class="cargando">Cargando socios...</div>
+    </div>
+
+    <!-- CONVENIOS -->
+    <div id="panelConvenios" class="panel-tab">
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Agregar convenio</h3>
+        <div class="form-convenio">
+          <input type="text" id="nuevoConvenioNombre" placeholder="Nombre del convenio (ej: Farmacia X)">
+          <input type="text" id="nuevoConvenioDesc" placeholder="Descripción breve del beneficio">
+        </div>
+        <div class="form-convenio" style="margin-top:10px;align-items:center;">
+          <label style="font-size:12.5px;color:var(--ink-soft);">Foto (opcional):</label>
+          <input type="file" id="nuevoConvenioFoto" accept="image/*">
+          <button class="btn-secundario" id="btnAgregarConvenio">Agregar</button>
+        </div>
+      </div>
+      <div id="listaConvenios" class="cargando">Cargando convenios...</div>
+    </div>
+
+    <!-- SIMULADOR -->
+    <div id="panelSimulador" class="panel-tab">
+      <div class="sim-box">
+        <div class="sim-tabs">
+          <button class="sim-tab-btn active" data-tipo="eventos">Salón de eventos</button>
+          <button class="sim-tab-btn" data-tipo="talleres">Salón de talleres</button>
+        </div>
+        <div class="sim-grid">
+          <div>
+            <div id="simCamposEventos">
+              <div class="sim-field"><label>Cantidad de personas</label>
+                <select id="simCapacidad">
+                  <option value="25">25 personas</option>
+                  <option value="50">50 personas</option>
+                  <option value="75">75 personas</option>
+                  <option value="100">100 personas</option>
+                </select>
+              </div>
+              <div class="sim-field"><label>Día y horario</label>
+                <select id="simFranja">
+                  <option value="0">Lunes a Jueves · 10 a 16 hs</option>
+                  <option value="1">Viernes a Domingos · 10 a 16 hs</option>
+                  <option value="2">Lunes a Jueves · 19 a 01 hs</option>
+                  <option value="3">Viernes a Domingos · 19 a 01 hs</option>
+                </select>
+              </div>
+            </div>
+            <div id="simCamposTalleres" style="display:none;">
+              <div class="sim-field"><label>Cantidad de horas</label>
+                <input type="number" id="simHoras" min="1" value="2">
+              </div>
+            </div>
+            <div class="sim-field"><label>Tipo de usuario</label>
+              <select id="simCategoria">
+                <option value="socio">Socio</option>
+                <option value="particular">Particular</option>
+              </select>
+            </div>
+          </div>
+          <div class="sim-resultado">
+            <div class="linea"><span>Alquiler</span><strong id="simAlquiler">$ 0</strong></div>
+            <div class="linea" id="simLineaSena"><span>Seña</span><strong id="simSena">$ 0</strong></div>
+            <div class="linea total" style="border:none;"><span>Total presupuesto</span><strong id="simTotal">$ 0</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div id="panelCalendario" class="panel-tab">
+      <div class="cal-controles">
+        <select id="calTipoEspacio">
+          <option value="eventos">Salón de eventos</option>
+          <option value="talleres">Salón de talleres</option>
+        </select>
+        <select id="calMes"></select>
+        <select id="calAnio"></select>
+        <button class="btn-secundario" id="btnCargarCalendario">Cargar mes</button>
+        <button class="btn-secundario" id="btnImprimirListado" style="background:var(--gold);color:var(--navy-deep);">Imprimir / Guardar PDF</button>
+      </div>
+
+      <div class="mini-cal-weekdays">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="mini-cal-grid" id="miniCalGrid"></div>
+
+      <div id="detalleDiaCont"></div>
+
+      <div id="listadoMensualCont" class="imprimir-activo">
+        <h3 id="tituloListado" style="font-size:16px;color:var(--navy-deep);margin-bottom:12px;"></h3>
+        <table class="tabla" id="tablaListado">
+          <thead>
+            <tr><th>Fecha</th><th>Hora</th><th>Nombre y apellido</th><th>Personas</th><th>Estado</th></tr>
+          </thead>
+          <tbody id="tablaListadoBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TICKETS -->
+    <div id="panelTickets" class="panel-tab">
+      <div id="listaTickets" class="cargando">Cargando consultas...</div>
+    </div>
+
+    <!-- FOTOS Y VIDEOS -->
+    <div id="panelMedia" class="panel-tab">
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Subir foto o video</h3>
+        <div class="form-convenio" style="align-items:center;">
+          <select id="mediaTipoEspacio">
+            <option value="eventos">Salón de eventos</option>
+            <option value="talleres">Salón de talleres</option>
+          </select>
+          <input type="file" id="mediaArchivo" accept="image/*,video/*">
+          <button class="btn-secundario" id="btnSubirMedia">Subir</button>
+        </div>
+        <p id="mediaMensaje" style="font-size:12.5px;color:var(--ink-soft);margin-top:8px;"></p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:4px;">Fotos hasta 8 MB · Videos hasta 25 MB</p>
+      </div>
+      <div class="media-grid" id="mediaGrid"></div>
+    </div>
+
+    <!-- CIERRE DE EVENTOS -->
+    <div id="panelCierre" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Eventos ya aprobados del salón de eventos. Cargá lo consumido/roto para calcular cuánto hay que devolver de la seña,
+        y confirmá cuando ya hayas hecho la devolución.
+      </p>
+
+      <div id="listaCierre" class="cargando">Cargando eventos...</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:28px 0 12px;border-top:1px solid var(--line);padding-top:24px;">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin:0;">Historial de devoluciones realizadas</h3>
+        <button class="btn-secundario" id="btnVerHistorial">Ver historial</button>
+      </div>
+
+      <div id="historialCont" style="display:none;">
+        <input type="text" id="buscadorHistorial" class="filtro-input" placeholder="Buscar por fecha del evento (dd/mm/aaaa) o nombre...">
+        <div id="tablaHistorialCont" class="cargando">Cargando historial...</div>
+      </div>
+    </div>
+
+    <!-- PAGOS DEL SALÓN -->
+    <div id="panelPagoSalon" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Reservas ya aprobadas (garantía pagada) que todavía esperan la confirmación del pago del alquiler del salón.
+        Al confirmar, se le avisa por mail al socio/usuario.
+      </p>
+      <div id="listaPagoSalon" class="cargando">Cargando...</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyZfr-CiJcOLq9WEHRFnYGFuOrc_y0z9TYSLF3QhI4cRBaXJEqwq8qamqIT3zoTKcWz/exec";
+let emailAdmin = null;
+
+let tokenClientGoogle;
+
+window.addEventListener('load', () => {
+  if(!window.google || !google.accounts || !google.accounts.oauth2) return;
+  tokenClientGoogle = google.accounts.oauth2.initTokenClient({
+    client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
+    scope: 'openid email profile',
+    callback: (tokenResponse) => {
+      if(tokenResponse.error) return;
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+      })
+      .then(res => res.json())
+      .then(perfil => procesarLoginAdmin(perfil.email, perfil.name))
+      .catch(err => console.error('Error obteniendo perfil de Google:', err));
+    }
+  });
+});
+
+document.getElementById('btnLoginDorado').addEventListener('click', () => {
+  if(tokenClientGoogle) tokenClientGoogle.requestAccessToken();
+});
+
+function procesarLoginAdmin(email, nombre){
+  emailAdmin = email;
+
+  document.getElementById('areaLoginHeader').style.display = 'none';
+  document.getElementById('nombreUsuarioHeader').textContent = email;
+  document.getElementById('areaUsuarioHeader').style.display = 'flex';
+
+  cargarSolicitudes();
+  cargarReservasPendientes();
+  cargarSocios();
+  cargarConvenios();
+  cargarTickets();
+  cargarCierre();
+  cargarPagoSalon();
+  cargarMediaAdmin();
+  inicializarSelectMeses();
+}
+
+document.getElementById('btnCerrarSesionHeader').addEventListener('click', () => {
+  emailAdmin = null;
+  if(window.google && google.accounts && google.accounts.id){
+    google.accounts.id.disableAutoSelect();
+  }
+  document.getElementById('areaUsuarioHeader').style.display = 'none';
+  document.getElementById('areaLoginHeader').style.display = 'block';
+  document.getElementById('panelAdmin').style.display = 'none';
+  document.getElementById('estadoAcceso').style.display = 'block';
+  document.getElementById('estadoAcceso').innerHTML = `
+    <div class="acceso-box">
+      <h2>Panel de administración</h2>
+      <p>Iniciá sesión con la cuenta de administrador para continuar.</p>
+    </div>`;
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel-tab').forEach(p => p.classList.remove('active', 'imprimir-activo'));
+    btn.classList.add('active');
+    const panel = document.getElementById(btn.dataset.panel);
+    panel.classList.add('active');
+    if(btn.dataset.panel === 'panelCalendario') panel.classList.add('imprimir-activo');
+  });
+});
+
+function formatoPesos(n){ return '$ ' + Number(n).toLocaleString('es-UY'); }
+const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa' };
+
+/* ============ Acceso / Solicitudes ============ */
+function cargarSolicitudes(){
+  fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){ mostrarAccesoDenegado(); return; }
+      document.getElementById('estadoAcceso').style.display = 'none';
+      document.getElementById('panelAdmin').style.display = 'block';
+      renderSolicitudes(data.solicitudes || []);
+    })
+    .catch(err => console.error(err));
+}
+
+function mostrarAccesoDenegado(){
+  document.getElementById('panelAdmin').style.display = 'none';
+  document.getElementById('estadoAcceso').style.display = 'block';
+  document.getElementById('estadoAcceso').innerHTML = `
+    <div class="acceso-box">
+      <h2 class="acceso-denegado">Acceso no autorizado</h2>
+      <p>Esta cuenta no tiene permisos de administrador.</p>
+    </div>`;
+}
+
+function renderSolicitudes(lista){
+  document.getElementById('badgeSolicitudes').textContent = lista.length;
+  const cont = document.getElementById('listaSocios');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay solicitudes pendientes.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(s => {
+    const categoriaTexto = s.categoria_solicitada === 'convenio'
+      ? `Convenio · ${NOMBRES_INST[s.id_convenio] || s.id_convenio}`
+      : (s.categoria_solicitada === 'socio' ? 'Socio' : 'Particular');
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${s.nombre} ${s.apellido}</div>
+        <div class="card-sub">${s.email} · Registrado el ${s.fecha_registro}</div></div>
+        <span class="tag">${categoriaTexto}</span>
+      </div>
+      <div class="datos-grid">
+        <div><span>Cédula</span><strong>${s.ci}</strong></div>
+        <div><span>Teléfono</span><strong>${s.telefono}</strong></div>
+        ${s.link_comprobante ? `<div><span>Comprobante</span><a class="link-comprobante" href="${s.link_comprobante}" target="_blank">Ver archivo →</a></div>` : ''}
+      </div>
+      <div class="card-acciones">
+        <button class="btn-aprobar" data-email="${s.email}" data-accion="aprobado">Aprobar</button>
+        <button class="btn-rechazar" data-email="${s.email}" data-accion="rechazado">Rechazar</button>
+      </div>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('.btn-aprobar, .btn-rechazar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoUsuario', emailAdmin, emailUsuario: btn.dataset.email, nuevoEstado: btn.dataset.accion
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarSolicitudes(); cargarSocios(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Reservas pendientes ============ */
+function cargarReservasPendientes(){
+  fetch(`${URL_BACKEND}?accion=obtenerReservasPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderReservas(data.reservas || []); })
+    .catch(err => console.error(err));
+}
+
+function renderReservas(lista){
+  document.getElementById('badgeReservas').textContent = lista.length;
+  const cont = document.getElementById('listaReservas');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay reservas pendientes.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const fechaTxt = inicio.toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long'});
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    const tipoTxt = r.tipo_espacio === 'eventos' ? 'Salón de eventos' : 'Salón de talleres';
+    const formaPagoTxt = r.forma_pago_sena === 'descuento_sueldo' ? 'Descuento por sueldo' : (r.forma_pago_sena === 'transferencia' ? 'Transferencia' : '—');
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">${tipoTxt} · ${fechaTxt} · ${horaTxt}</div></div>
+        <span class="tag">${r.categoria_aplicada}</span>
+      </div>
+      <div class="datos-grid">
+        ${r.capacidad_personas ? `<div><span>Capacidad</span><strong>${r.capacidad_personas} personas</strong></div>` : ''}
+        <div><span>Precio alquiler</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+        ${r.monto_sena ? `<div><span>Seña</span><strong>${formatoPesos(r.monto_sena)}</strong></div>` : ''}
+        ${r.tipo_espacio === 'eventos' ? `<div><span>Forma de pago</span><strong>${formaPagoTxt}</strong></div>` : ''}
+        ${r.link_comprobante_sena ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
+        ${r.es_tercero === 'SI' ? `<div><span>Para un tercero</span><strong>${r.tercero_nombre} ${r.tercero_apellido} · ${r.tercero_telefono}</strong></div>` : ''}
+        ${r.comentarios ? `<div><span>Comentarios</span><strong>${r.comentarios}</strong></div>` : ''}
+      </div>
+      <div class="card-acciones">
+        <button class="btn-aprobar" data-id="${r.id_reserva}" data-accion="aprobada">Aprobar</button>
+        <button class="btn-rechazar" data-id="${r.id_reserva}" data-accion="rechazada">Rechazar</button>
+      </div>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('.btn-aprobar, .btn-rechazar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoReserva', emailAdmin, idReserva: btn.dataset.id, nuevoEstado: btn.dataset.accion
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarReservasPendientes(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Socios (listado completo) ============ */
+let listaSociosCompleta = [];
+function cargarSocios(){
+  fetch(`${URL_BACKEND}?accion=obtenerListaUsuarios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; listaSociosCompleta = data.usuarios || []; renderTablaSocios(listaSociosCompleta); })
+    .catch(err => console.error(err));
+}
+
+function renderTablaSocios(lista){
+  const cont = document.getElementById('tablaSociosCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay usuarios registrados todavía.</p>'; return; }
+  let html = `<table class="tabla"><thead><tr>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Categoría</th><th>Estado</th>
+  </tr></thead><tbody>`;
+  lista.forEach(u => {
+    const categoriaTexto = u.categoria_solicitada === 'convenio'
+      ? `Convenio · ${NOMBRES_INST[u.id_convenio] || u.id_convenio}`
+      : (u.categoria_solicitada === 'socio' ? 'Socio' : 'Particular');
+    html += `<tr>
+      <td>${u.nombre} ${u.apellido}</td><td>${u.email}</td><td>${u.ci}</td><td>${u.telefono}</td>
+      <td>${categoriaTexto}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+}
+
+document.getElementById('filtroSocios').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  const filtrados = listaSociosCompleta.filter(u =>
+    `${u.nombre} ${u.apellido} ${u.email} ${u.ci}`.toLowerCase().includes(q)
+  );
+  renderTablaSocios(filtrados);
+});
+
+/* ============ Convenios ============ */
+function cargarConvenios(){
+  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderConvenios(data.convenios || []); })
+    .catch(err => console.error(err));
+}
+
+function renderConvenios(lista){
+  const cont = document.getElementById('listaConvenios');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no cargaste ningún convenio.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          ${c.foto_url ? `<img src="${c.foto_url}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">` : ''}
+          <div><div class="card-title">${c.nombre_convenio}</div><div class="card-sub">${c.descripcion || ''}</div></div>
+        </div>
+        <span class="tag ${c.activo === 'SI' ? 'aprobado' : 'rechazado'}">${c.activo === 'SI' ? 'Activo' : 'Inactivo'}</span>
+      </div>
+      <div class="card-acciones">
+        <button class="btn-secundario" data-id="${c.id_convenio}" data-nuevo="${c.activo === 'SI' ? 'NO' : 'SI'}">
+          ${c.activo === 'SI' ? 'Desactivar' : 'Activar'}
+        </button>
+      </div>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarEstadoConvenio', emailAdmin, idConvenio: btn.dataset.id, nuevoEstado: btn.dataset.nuevo
+      })})
+      .then(res => res.json())
+      .then(data => { if(!data.error) cargarConvenios(); })
+      .catch(err => console.error(err));
+    });
+  });
+}
+
+document.getElementById('btnAgregarConvenio').addEventListener('click', () => {
+  const nombre = document.getElementById('nuevoConvenioNombre').value.trim();
+  const desc = document.getElementById('nuevoConvenioDesc').value.trim();
+  const archivoInput = document.getElementById('nuevoConvenioFoto');
+  if(!nombre){ alert('Escribí el nombre del convenio.'); return; }
+
+  const btn = document.getElementById('btnAgregarConvenio');
+  btn.disabled = true; btn.textContent = 'Agregando...';
+
+  function enviar(fotoData){
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc, foto: fotoData
+    })})
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false; btn.textContent = 'Agregar';
+      if(data.error){ alert(data.error); return; }
+      document.getElementById('nuevoConvenioNombre').value = '';
+      document.getElementById('nuevoConvenioDesc').value = '';
+      archivoInput.value = '';
+      cargarConvenios();
+    })
+    .catch(err => { btn.disabled = false; btn.textContent = 'Agregar'; console.error(err); });
+  }
+
+  if(archivoInput.files && archivoInput.files.length > 0){
+    const archivo = archivoInput.files[0];
+    const lector = new FileReader();
+    lector.onload = function(){
+      const base64 = lector.result.split(',')[1];
+      enviar({ base64, nombreArchivo: archivo.name, mimeType: archivo.type });
+    };
+    lector.readAsDataURL(archivo);
+  } else {
+    enviar(null);
+  }
+});
+
+/* ============ Simulador ============ */
+const TARIFAS_SIM = {
+  socio: {25:[2800,3900,3300,4400], 50:[3700,4800,4400,5500], 75:[4800,5900,5000,6000], 100:[5300,7000,6000,7200]},
+  particular: {50:[8300,9300,8800,10500], 75:[9300,10500,9900,11500], 100:[10500,12000,11000,13200]}
+};
+const SENA_SOCIO_SIM = 3000, SENA_PARTICULAR_SIM = 5000, PRECIO_HORA_TALLER_SIM = 550;
+let simTipoEspacio = 'eventos';
+
+document.querySelectorAll('.sim-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sim-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    simTipoEspacio = btn.dataset.tipo;
+    document.getElementById('simCamposEventos').style.display = simTipoEspacio === 'eventos' ? 'block' : 'none';
+    document.getElementById('simCamposTalleres').style.display = simTipoEspacio === 'talleres' ? 'block' : 'none';
+    document.getElementById('simLineaSena').style.display = simTipoEspacio === 'eventos' ? 'flex' : 'none';
+    calcularSimulador();
+  });
+});
+
+['simCapacidad','simFranja','simCategoria','simHoras'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calcularSimulador);
+});
+
+function calcularSimulador(){
+  let alquiler = 0, sena = 0;
+  if(simTipoEspacio === 'eventos'){
+    const cap = Number(document.getElementById('simCapacidad').value);
+    const franja = Number(document.getElementById('simFranja').value);
+    const categoria = document.getElementById('simCategoria').value;
+    const tabla = TARIFAS_SIM[categoria];
+    if(tabla && tabla[cap]){
+      alquiler = tabla[cap][franja];
+      sena = categoria === 'socio' ? SENA_SOCIO_SIM : SENA_PARTICULAR_SIM;
+    } else {
+      document.getElementById('simAlquiler').textContent = '—';
+      document.getElementById('simSena').textContent = '—';
+      document.getElementById('simTotal').textContent = '—';
+      return;
+    }
+  } else {
+    const horas = Math.max(1, Number(document.getElementById('simHoras').value) || 1);
+    alquiler = horas * PRECIO_HORA_TALLER_SIM;
+    sena = 0;
+  }
+  document.getElementById('simAlquiler').textContent = formatoPesos(alquiler);
+  document.getElementById('simSena').textContent = formatoPesos(sena);
+  document.getElementById('simTotal').textContent = formatoPesos(alquiler);
+}
+calcularSimulador();
+
+/* ============ Calendario + listado mensual ============ */
+function inicializarSelectMeses(){
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const selMes = document.getElementById('calMes');
+  meses.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = m;
+    selMes.appendChild(opt);
+  });
+  const hoy = new Date();
+  selMes.value = hoy.getMonth() + 1;
+
+  const selAnio = document.getElementById('calAnio');
+  for(let a = hoy.getFullYear() - 1; a <= hoy.getFullYear() + 2; a++){
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    if(a === hoy.getFullYear()) opt.selected = true;
+    selAnio.appendChild(opt);
+  }
+
+  cargarCalendarioYListado();
+}
+
+document.getElementById('btnCargarCalendario').addEventListener('click', cargarCalendarioYListado);
+document.getElementById('btnImprimirListado').addEventListener('click', () => window.print());
+
+let reservasDelMesActual = [];
+
+function cargarCalendarioYListado(){
+  const tipo = document.getElementById('calTipoEspacio').value;
+  const anio = Number(document.getElementById('calAnio').value);
+  const mes = Number(document.getElementById('calMes').value);
+  document.getElementById('detalleDiaCont').innerHTML = '';
+
+  fetch(`${URL_BACKEND}?accion=obtenerReservasDelMes&emailAdmin=${encodeURIComponent(emailAdmin)}&tipo=${tipo}&anio=${anio}&mes=${mes}`)
+    .then(res => res.json())
+    .then(data => {
+      reservasDelMesActual = data.reservas || [];
+      generarMiniCalendario(anio, mes, reservasDelMesActual);
+      renderListadoMensual(reservasDelMesActual, tipo, anio, mes);
+    })
+    .catch(err => console.error(err));
+}
+
+function generarMiniCalendario(anio, mes, reservas){
+  const diasConEventos = new Set(reservas.map(r => new Date(r.hora_inicio).getDate()));
+  const grid = document.getElementById('miniCalGrid');
+  grid.innerHTML = '';
+
+  const primerDia = new Date(anio, mes - 1, 1);
+  const ultimoDia = new Date(anio, mes, 0);
+  let offset = primerDia.getDay() - 1;
+  if(offset < 0) offset = 6;
+
+  for(let i = 0; i < offset; i++){
+    const vacio = document.createElement('div');
+    vacio.className = 'mini-cal-day empty';
+    grid.appendChild(vacio);
+  }
+  for(let d = 1; d <= ultimoDia.getDate(); d++){
+    const celda = document.createElement('div');
+    celda.textContent = d;
+    const tieneEventos = diasConEventos.has(d);
+    celda.className = 'mini-cal-day' + (tieneEventos ? ' con-eventos' : '');
+    if(tieneEventos){
+      celda.addEventListener('click', () => mostrarDetalleDia(d, celda));
+    }
+    grid.appendChild(celda);
+  }
+}
+
+function mostrarDetalleDia(dia, celda){
+  document.querySelectorAll('.mini-cal-day').forEach(c => c.classList.remove('dia-seleccionado'));
+  celda.classList.add('dia-seleccionado');
+
+  const eventosDelDia = reservasDelMesActual.filter(r => new Date(r.hora_inicio).getDate() === dia);
+  const cont = document.getElementById('detalleDiaCont');
+
+  let html = `<div class="detalle-dia"><h4>Eventos del día ${dia}</h4>`;
+  eventosDelDia.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    html += `<div class="item">
+      <strong>${r.nombre_solicitante}</strong><br>
+      ${horaTxt} · ${r.capacidad_personas ? r.capacidad_personas + ' personas' : ''} ·
+      <span class="tag ${r.estado_reserva === 'aprobada' ? 'aprobado' : 'pendiente'}">${r.estado_reserva}</span>
+    </div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function renderListadoMensual(lista, tipo, anio, mes){
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('tituloListado').textContent =
+    `${tipo === 'eventos' ? 'Salón de eventos' : 'Salón de talleres'} — ${meses[mes-1]} ${anio}`;
+
+  const tbody = document.getElementById('tablaListadoBody');
+  if(lista.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" class="vacio">No hay eventos cargados para este mes.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  lista.forEach(r => {
+    const inicio = new Date(r.hora_inicio);
+    const fin = new Date(r.hora_fin);
+    const fechaTxt = inicio.toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fechaTxt}</td><td>${horaTxt}</td><td>${r.nombre_solicitante}</td>
+      <td>${r.capacidad_personas || '—'}</td>
+      <td><span class="tag ${r.estado_reserva === 'aprobada' ? 'aprobado' : 'pendiente'}">${r.estado_reserva}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ============ Tickets ============ */
+function cargarTickets(){
+  fetch(`${URL_BACKEND}?accion=obtenerTicketsAdmin&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderTickets(data.tickets || []); })
+    .catch(err => console.error(err));
+}
+
+function renderTickets(lista){
+  const abiertos = lista.filter(t => t.estado_ticket === 'abierto').length;
+  document.getElementById('badgeTickets').textContent = abiertos;
+  const cont = document.getElementById('listaTickets');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no hay consultas.</p>'; return; }
+  cont.innerHTML = '';
+  lista.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <div class="card-top">
+        <div><div class="card-title">${t.asunto}</div>
+        <div class="card-sub">${t.nombre_usuario ? t.nombre_usuario + ' · ' : ''}${t.email_usuario} · ${t.fecha_creacion}</div></div>
+        <span class="tag ${t.estado_ticket}">${t.estado_ticket}</span>
+      </div>
+      <p style="font-size:14px;color:var(--ink);margin-bottom:6px;">${t.mensaje}</p>
+      ${t.estado_ticket === 'respondido'
+        ? `<div class="respuesta-mostrada"><strong>Tu respuesta:</strong> ${t.respuesta_admin}</div>`
+        : `<div class="ticket-respuesta">
+             <textarea rows="2" placeholder="Escribí tu respuesta..." data-id="${t.id_ticket}"></textarea>
+             <button class="btn-secundario btn-responder" data-id="${t.id_ticket}">Responder</button>
+           </div>`
+      }`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('.btn-responder').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const textarea = cont.querySelector(`textarea[data-id="${btn.dataset.id}"]`);
+      const respuesta = textarea.value.trim();
+      if(!respuesta){ alert('Escribí una respuesta antes de enviar.'); return; }
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'responderTicket', emailAdmin, idTicket: btn.dataset.id, respuesta
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarTickets(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Agrupado por mes (reutilizable) ============ */
+const MESES_NOMBRE_ADMIN = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderAgrupadoPorMes_(cont, lista, obtenerFecha, renderItemHtml, mensajeVacio){
+  if(lista.length === 0){ cont.innerHTML = `<p class="vacio">${mensajeVacio}</p>`; return; }
+
+  const grupos = {};
+  lista.forEach(item => {
+    const fecha = obtenerFecha(item);
+    const clave = `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}`;
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(item);
+  });
+
+  const claves = Object.keys(grupos).sort();
+  let html = '';
+  claves.forEach(clave => {
+    const [anio, mes] = clave.split('-');
+    const nombreMes = `${MESES_NOMBRE_ADMIN[Number(mes)-1]} ${anio}`;
+    const items = grupos[clave];
+    html += `<details class="grupo-mes" open>
+      <summary>${nombreMes} <span class="cant">${items.length}</span></summary>
+      <div style="padding:14px;">${items.map(renderItemHtml).join('')}</div>
+    </details>`;
+  });
+  cont.innerHTML = html;
+}
+
+/* ============ Cierre de eventos (gastos y devolución de seña) ============ */
+function cargarCierre(){
+  fetch(`${URL_BACKEND}?accion=obtenerCierreEventos&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderCierre(data.eventos || []); })
+    .catch(err => console.error(err));
+}
+
+function cierreItemHtml(ev){
+  const fechaTxt = new Date(ev.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const inicio = new Date(ev.hora_inicio);
+  const fin = new Date(ev.hora_fin);
+  const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+  const yaCalculado = ev.estado_devolucion === 'pendiente' || ev.estado_devolucion === 'no_corresponde';
+
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-title">${ev.nombre_solicitante}</div>
+        <div class="card-sub">${fechaTxt} · ${horaTxt}</div></div>
+        <span class="tag ${ev.estado_devolucion === 'pendiente' ? 'pendiente' : (ev.estado_devolucion === 'no_corresponde' ? 'aprobado' : '')}">
+          ${ev.estado_devolucion === 'sin_procesar' ? 'Falta cargar gastos' : (ev.estado_devolucion === 'pendiente' ? 'Devolución pendiente' : 'Sin devolución')}
+        </span>
+      </div>
+      <div class="datos-grid">
+        <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
+      </div>
+      <div class="cierre-input-wrap">
+        <div>
+          <label>Consumo / roturas ($)</label>
+          <input type="number" min="0" class="input-consumo" data-id="${ev.id_reserva}" value="${ev.monto_consumido || ''}" placeholder="0">
+        </div>
+        <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
+      </div>
+      ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
+      ${ev.estado_devolucion === 'pendiente'
+        ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
+        : ''}
+    </div>`;
+}
+
+function renderCierre(lista){
+  document.getElementById('badgeCierre').textContent = lista.length;
+  const cont = document.getElementById('listaCierre');
+  renderAgrupadoPorMes_(cont, lista, ev => new Date(ev.fecha), cierreItemHtml, 'No hay eventos pasados esperando cierre.');
+
+  cont.querySelectorAll('.btn-calcular').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = cont.querySelector(`.input-consumo[data-id="${btn.dataset.id}"]`);
+      const montoConsumido = Number(input.value) || 0;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'registrarGastosEvento', emailAdmin, idReserva: btn.dataset.id, montoConsumido
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); } cargarCierre(); })
+      .catch(err => console.error(err));
+    });
+  });
+
+  cont.querySelectorAll('.btn-confirmar-devolucion').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Confirmás que ya le devolviste el dinero correspondiente a esta persona?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'confirmarDevolucion', emailAdmin, idReserva: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => {
+        if(data.error){ alert(data.error); btn.disabled=false; return; }
+        cargarCierre();
+        if(historialVisible) cargarHistorialDevoluciones();
+      })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Historial de devoluciones ============ */
+let historialVisible = false;
+
+document.getElementById('btnVerHistorial').addEventListener('click', () => {
+  historialVisible = !historialVisible;
+  const cont = document.getElementById('historialCont');
+  const btn = document.getElementById('btnVerHistorial');
+  if(historialVisible){
+    cont.style.display = 'block';
+    btn.textContent = 'Ocultar historial';
+    cargarHistorialDevoluciones();
+  } else {
+    cont.style.display = 'none';
+    btn.textContent = 'Ver historial';
+  }
+});
+
+let historialCompleto = [];
+
+function cargarHistorialDevoluciones(){
+  fetch(`${URL_BACKEND}?accion=obtenerHistorialDevoluciones&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error) return;
+      historialCompleto = data.historial || [];
+      renderHistorialAgrupado(historialCompleto);
+    })
+    .catch(err => console.error(err));
+}
+
+document.getElementById('buscadorHistorial').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if(!q){ renderHistorialAgrupado(historialCompleto); return; }
+
+  const filtrado = historialCompleto.filter(h => {
+    const fechaTxt = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+    return fechaTxt.includes(q) || (h.nombre_solicitante || '').toLowerCase().includes(q);
+  });
+  renderHistorialAgrupado(filtrado, true);
+});
+
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderHistorialAgrupado(lista, expandirTodo){
+  const cont = document.getElementById('tablaHistorialCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No se encontraron devoluciones.</p>'; return; }
+
+  // Agrupa por mes/año del EVENTO (no de la devolución), que es como se busca habitualmente
+  const grupos = {};
+  lista.forEach(h => {
+    const fecha = new Date(h.fecha);
+    const clave = `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}`;
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(h);
+  });
+
+  const clavesOrdenadas = Object.keys(grupos).sort().reverse(); // más reciente primero
+
+  let html = '';
+  clavesOrdenadas.forEach((clave, idx) => {
+    const [anio, mes] = clave.split('-');
+    const nombreMes = `${MESES_NOMBRE[Number(mes)-1]} ${anio}`;
+    const items = grupos[clave];
+    const abierto = expandirTodo || idx === 0; // el mes más reciente (o todo si hay búsqueda) arranca abierto
+
+    html += `<details class="grupo-mes" ${abierto ? 'open' : ''}>
+      <summary>${nombreMes} <span class="cant">${items.length}</span></summary>
+      <table class="tabla"><thead><tr>
+        <th>Evento</th><th>Fecha del evento</th><th>Seña</th><th>Consumo/roturas</th><th>Devuelto</th><th>Fecha de devolución</th>
+      </tr></thead><tbody>`;
+    items.forEach(h => {
+      const fechaEvento = new Date(h.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+      html += `<tr>
+        <td>${h.nombre_solicitante}</td><td>${fechaEvento}</td>
+        <td>${formatoPesos(h.monto_sena)}</td><td>${formatoPesos(h.monto_consumido)}</td>
+        <td>${formatoPesos(h.sena_a_devolver)}</td><td>${h.fecha_devolucion}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></details>';
+  });
+
+  cont.innerHTML = html;
+}
+
+/* ============ Pagos del salón ============ */
+function cargarPagoSalon(){
+  fetch(`${URL_BACKEND}?accion=obtenerReservasFaltaPagoSalon&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderPagoSalon(data.reservas || []); })
+    .catch(err => console.error(err));
+}
+
+function pagoSalonItemHtml(r){
+  const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">${fechaTxt}</div></div>
+      </div>
+      <div class="datos-grid">
+        <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+        ${r.link_comprobante_pago_salon
+          ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>`
+          : `<div><span>Comprobante</span><strong style="color:var(--ink-soft);font-weight:500;">Todavía no lo subió</strong></div>`}
+      </div>
+      <div class="card-acciones">
+        <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
+      </div>
+    </div>`;
+}
+
+function renderPagoSalon(lista){
+  document.getElementById('badgePagoSalon').textContent = lista.length;
+  const cont = document.getElementById('listaPagoSalon');
+  renderAgrupadoPorMes_(cont, lista, r => new Date(r.fecha), pagoSalonItemHtml, 'No hay pagos de salón pendientes de confirmar.');
+
+  cont.querySelectorAll('.btn-aprobar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Confirmás que ya recibiste el pago del alquiler del salón?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'confirmarPagoSalon', emailAdmin, idReserva: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarPagoSalon(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+}
+
+/* ============ Fotos y videos del salón ============ */
+document.getElementById('mediaTipoEspacio').addEventListener('change', cargarMediaAdmin);
+
+function cargarMediaAdmin(){
+  const tipo = document.getElementById('mediaTipoEspacio').value;
+  fetch(`${URL_BACKEND}?accion=obtenerMediaSalon&tipo=${tipo}`)
+    .then(res => res.json())
+    .then(data => renderMediaAdmin(data.media || []))
+    .catch(err => console.error(err));
+}
+
+function renderMediaAdmin(lista){
+  const cont = document.getElementById('mediaGrid');
+  if(lista.length === 0){
+    cont.innerHTML = '<p class="vacio">No hay fotos ni videos cargados para esta opción todavía.</p>';
+    return;
+  }
+  cont.innerHTML = lista.map(m => {
+    const thumb = `https://drive.google.com/thumbnail?id=${m.file_id}&sz=w400`;
+    return `<div class="media-item">
+      <img src="${thumb}" alt="" loading="lazy">
+      ${m.tipo_media === 'video' ? '<span class="media-badge">▶ Video</span>' : ''}
+      <button class="media-borrar" data-id="${m.id}" title="Borrar">✕</button>
+    </div>`;
+  }).join('');
+
+  cont.querySelectorAll('.media-borrar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Borrar este archivo? No se puede deshacer.')) return;
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'eliminarMediaSalon', emailAdmin, idMedia: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); return; } cargarMediaAdmin(); })
+      .catch(err => console.error(err));
+    });
+  });
+}
+
+document.getElementById('btnSubirMedia').addEventListener('click', () => {
+  const tipo = document.getElementById('mediaTipoEspacio').value;
+  const input = document.getElementById('mediaArchivo');
+  const msg = document.getElementById('mediaMensaje');
+  msg.textContent = '';
+
+  if(!input.files || input.files.length === 0){
+    msg.textContent = 'Elegí un archivo primero.';
+    return;
+  }
+
+  const archivo = input.files[0];
+  const btn = document.getElementById('btnSubirMedia');
+  btn.disabled = true;
+  btn.textContent = 'Subiendo...';
+
+  const lector = new FileReader();
+  lector.onload = function(){
+    const base64 = lector.result.split(',')[1];
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'subirMediaSalon', emailAdmin, tipo_espacio: tipo,
+      archivo: { base64, nombreArchivo: archivo.name, mimeType: archivo.type }
+    })})
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'Subir';
+      if(data.error){ msg.textContent = data.error; return; }
+      msg.textContent = '✓ Subido correctamente.';
+      input.value = '';
+      cargarMediaAdmin();
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Subir';
+      msg.textContent = 'Error al subir. Probá de nuevo.';
+      console.error(err);
+    });
+  };
+  lector.readAsDataURL(archivo);
+});
+</script>
+
+</body>
+</html>
