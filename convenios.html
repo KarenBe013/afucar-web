@@ -252,6 +252,7 @@
     background:var(--paper-white);border:1px solid var(--line);border-radius:4px;
     padding:28px 26px;position:relative;
   }
+  .conv-foto{width:100%;height:140px;object-fit:cover;border-radius:4px;margin-bottom:16px;}
   .conv-card h3{font-size:18px;color:var(--navy-deep);margin-bottom:10px;font-weight:600;}
   .conv-card p{font-size:14px;color:var(--ink-soft);}
   .conv-card .conv-desc.bloqueada{filter:blur(4px);user-select:none;}
@@ -583,7 +584,7 @@
         <li><a href="convenios.html">Convenios</a></li>
         <li><a href="salon.html">Salón de eventos</a></li>
         <li><a href="index.html#consultas">Consultas</a></li>
-        <li><a href="comprobante.html">Comprobante</a></li>
+        <li><a href="comprobante.html">Comprobante de socio</a></li>
         <li><a href="index.html#contacto">Contacto</a></li>
       </ul>
     </nav>
@@ -621,7 +622,7 @@
     <a href="convenios.html">Convenios</a>
     <a href="salon.html">Salón de eventos</a>
     <a href="index.html#consultas">Consultas</a>
-    <a href="comprobante.html">Comprobante</a>
+    <a href="comprobante.html">Comprobante de socio</a>
     <a href="index.html#contacto">Contacto</a>
   </div>
 </header>
@@ -843,6 +844,7 @@ function renderConvenios(lista){
   }
   cont.innerHTML = lista.map(c => `
     <div class="conv-card">
+      ${c.foto_url ? `<img src="${c.foto_url}" class="conv-foto" alt="${c.nombre_convenio}">` : ''}
       <h3>${c.nombre_convenio}</h3>
       <p class="conv-desc ${esSocioAprobado ? '' : 'bloqueada'}">${c.descripcion || 'Sin descripción cargada.'}</p>
       ${esSocioAprobado ? '' : '<div class="lock-note">🔒 Iniciá sesión como socio aprobado para ver el detalle</div>'}
