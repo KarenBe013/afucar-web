@@ -123,7 +123,7 @@
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 
-  @media (max-width:1220px){
+  @media (max-width:1350px){
     nav{display:none;}
   }
 
@@ -133,7 +133,7 @@
     width:38px;height:34px;cursor:pointer;flex-shrink:0;padding:0;align-items:center;
   }
   .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
-  @media (max-width:1220px){
+  @media (max-width:1350px){
     .btn-hamburguesa{display:flex;}
   }
   .mobile-nav-panel{
@@ -638,7 +638,7 @@
         <li><a href="convenios.html">Convenios</a></li>
         <li><a href="salon.html">Salón de eventos</a></li>
         <li><a href="#consultas">Consultas</a></li>
-        <li><a href="comprobante.html">Comprobante</a></li>
+        <li><a href="comprobante.html">Comprobante de socio</a></li>
         <li><a href="#contacto">Contacto</a></li>
       </ul>
     </nav>
@@ -676,7 +676,7 @@
     <a href="convenios.html">Convenios</a>
     <a href="salon.html">Salón de eventos</a>
     <a href="#consultas">Consultas</a>
-    <a href="comprobante.html">Comprobante</a>
+    <a href="comprobante.html">Comprobante de socio</a>
     <a href="#contacto">Contacto</a>
   </div>
 </header>
@@ -761,19 +761,8 @@
         <p>Desde entonces trabajamos para representar a nuestros socios, gestionar convenios que suman valor real y sostener una sede propia donde la institución se vive todos los días, no solo en los papeles.</p>
         <p>Cuarenta años después, seguimos con la misma convicción: la unión entre colegas es la herramienta más eficaz para defender los intereses de quienes hacen funcionar la Cámara de Representantes.</p>
       </div>
-      <div class="directiva">
-        <div class="card-persona">
-          <div class="photo">Foto</div>
-          <div class="info"><div class="nombre">Nombre Apellido</div><div class="cargo">Presidente/a</div></div>
-        </div>
-        <div class="card-persona">
-          <div class="photo">Foto</div>
-          <div class="info"><div class="nombre">Nombre Apellido</div><div class="cargo">Secretario/a</div></div>
-        </div>
-        <div class="card-persona">
-          <div class="photo">Foto</div>
-          <div class="info"><div class="nombre">Nombre Apellido</div><div class="cargo">Tesorero/a</div></div>
-        </div>
+      <div class="directiva" id="directivaCont">
+        <p style="color:var(--ink-soft);font-size:13px;grid-column:1/-1;">Cargando directiva...</p>
       </div>
     </div>
   </div>
@@ -1125,6 +1114,13 @@ function mostrarFormularioRegistro(email, nombreGoogle){
             <option value="convenio">Convenio / Asociación</option>
           </select>
         </div>
+        <div id="regBloqueSocio" style="display:none;">
+          <div class="cuenta-field">
+            <label>Número de socio (número de cobro)</label>
+            <input type="text" id="regNumeroSocio">
+            <small>Es el número con el que la asociación te identifica para el cobro de la cuota.</small>
+          </div>
+        </div>
         <div id="regBloqueConvenio" style="display:none;">
           <div class="cuenta-field">
             <label>¿Cuál institución?</label>
@@ -1157,12 +1153,14 @@ function mostrarFormularioRegistro(email, nombreGoogle){
     });
 
   const elCategoria = document.getElementById('regCategoria');
+  const bloqueSocio = document.getElementById('regBloqueSocio');
   const bloqueConvenio = document.getElementById('regBloqueConvenio');
   const bloqueComprobante = document.getElementById('regBloqueComprobante');
   const labelComprobante = document.getElementById('regLabelComprobante');
   const elInstitucion = document.getElementById('regInstitucion');
 
   elCategoria.addEventListener('change', () => {
+    bloqueSocio.style.display = elCategoria.value === 'socio' ? 'block' : 'none';
     bloqueConvenio.style.display = elCategoria.value === 'convenio' ? 'block' : 'none';
     actualizarBloqueComprobanteReg();
   });
@@ -1184,8 +1182,15 @@ function mostrarFormularioRegistro(email, nombreGoogle){
     const inst = categoria === 'convenio' ? categoriasDescuento.find(c => c.id === elInstitucion.value) : null;
     const requiereComprobante = inst && inst.requiere_comprobante === 'SI';
     const archivoInput = document.getElementById('regComprobante');
+    const numeroSocio = document.getElementById('regNumeroSocio').value.trim();
     const errorEl = document.getElementById('regError');
     errorEl.style.display = 'none';
+
+    if(categoria === 'socio' && !numeroSocio){
+      errorEl.textContent = 'Ingresá tu número de socio para continuar.';
+      errorEl.style.display = 'block';
+      return;
+    }
 
     if(requiereComprobante && (!archivoInput.files || archivoInput.files.length === 0)){
       errorEl.textContent = 'Para esta institución es obligatorio subir el comprobante indicado.';
@@ -1202,6 +1207,7 @@ function mostrarFormularioRegistro(email, nombreGoogle){
         ci: document.getElementById('regCi').value,
         telefono: document.getElementById('regTelefono').value,
         categoria_solicitada: categoria,
+        numero_socio: categoria === 'socio' ? numeroSocio : '',
         id_convenio: categoria === 'convenio' ? elInstitucion.value : '',
         comprobante: comprobanteData
       };
@@ -1306,6 +1312,30 @@ function renderMisTickets(lista){
   });
   cont.innerHTML = html;
 }
+
+/* ============ Directiva (Quiénes somos) — pública, no requiere login ============ */
+function cargarDirectiva(){
+  fetch(`${URL_BACKEND}?accion=obtenerDirectivaPublico`)
+    .then(res => res.json())
+    .then(data => renderDirectiva(data.directiva || []))
+    .catch(err => console.error(err));
+}
+
+function renderDirectiva(lista){
+  const cont = document.getElementById('directivaCont');
+  if(lista.length === 0){
+    cont.innerHTML = '<p style="color:var(--ink-soft);font-size:13px;grid-column:1/-1;">Próximamente vamos a publicar la información de la directiva.</p>';
+    return;
+  }
+  cont.innerHTML = lista.map(p => `
+    <div class="card-persona">
+      ${p.foto_url ? `<img src="${p.foto_url}" class="photo" style="object-fit:cover;" alt="${p.nombre}">` : `<div class="photo">Foto</div>`}
+      <div class="info"><div class="nombre">${p.nombre}</div><div class="cargo">${p.cargo}</div></div>
+    </div>
+  `).join('');
+}
+
+cargarDirectiva();
 </script>
 
 </body>
