@@ -92,7 +92,8 @@
     display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;color:#dfe4ec;flex-shrink:0;
   }
   #nombreUsuarioHeader{
-    max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;
+    background:var(--gold);color:var(--navy-deep);width:26px;height:26px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
   }
   #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;font-size:12.5px;white-space:nowrap;}
   #areaUsuarioHeader a:hover{color:var(--gold);}
@@ -127,7 +128,7 @@
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 
-  @media (max-width:1350px){
+  @media (max-width:1450px){
     nav{display:none;}
   }
 
@@ -137,7 +138,7 @@
     width:38px;height:34px;cursor:pointer;flex-shrink:0;padding:0;align-items:center;
   }
   .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
-  @media (max-width:1350px){
+  @media (max-width:1450px){
     .btn-hamburguesa{display:flex;}
   }
   .mobile-nav-panel{
@@ -1160,7 +1161,7 @@ function aplicarDatosUsuario(data, email){
   document.getElementById('areaLoginHeader').style.display = 'none';
   document.querySelector('.demo-toggle').style.display = 'none';
 
-  document.getElementById('nombreUsuarioHeader').textContent = `${usuarioReal.nombre} ${usuarioReal.apellido}`;
+  document.getElementById('nombreUsuarioHeader').textContent = ((usuarioReal.nombre[0]||'') + (usuarioReal.apellido[0]||'')).toUpperCase();
   document.getElementById('areaUsuarioHeader').style.display = 'flex';
 
   const okBanner = document.getElementById('loginOkBanner');
