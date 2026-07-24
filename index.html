@@ -33,7 +33,7 @@
   a{color:inherit;text-decoration:none;}
   img{max-width:100%;display:block;}
 
-  /* ---------- Columnata: motivo firma, derivado del logo ---------- */ 
+  /* ---------- Columnata: motivo firma, derivado del logo ---------- */
   .colonnade{
     display:flex;
     align-items:flex-end;
@@ -90,7 +90,7 @@
   }
   .btn-login:hover{background:var(--gold-soft);}
   #areaUsuarioHeader{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;color:#dfe4ec;flex-shrink:0;}
-  #nombreUsuarioHeader{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;}
+  #nombreUsuarioHeader{background:var(--gold);color:var(--navy-deep);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
   #areaUsuarioHeader a{color:var(--gold-soft);text-decoration:underline;font-weight:600;cursor:pointer;font-size:12.5px;white-space:nowrap;}
 
   /* ---------- Notificaciones ---------- */
@@ -123,7 +123,7 @@
   .notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
   .notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 
-  @media (max-width:1350px){
+  @media (max-width:1450px){
     nav{display:none;}
   }
 
@@ -133,7 +133,7 @@
     width:38px;height:34px;cursor:pointer;flex-shrink:0;padding:0;align-items:center;
   }
   .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
-  @media (max-width:1350px){
+  @media (max-width:1450px){
     .btn-hamburguesa{display:flex;}
   }
   .mobile-nav-panel{
@@ -794,15 +794,15 @@
     <div class="contacto-grid">
       <div class="contacto-card">
         <span class="contacto-label">Teléfono</span>
-        <span class="contacto-value">2200 0951</span>
+        <span class="contacto-value">2900 0000</span>
       </div>
       <div class="contacto-card">
         <span class="contacto-label">Celular / WhatsApp</span>
-        <span class="contacto-value">092 377 794</span>
+        <span class="contacto-value">099 000 000</span>
       </div>
       <div class="contacto-card">
         <span class="contacto-label">Correo electrónico</span>
-        <span class="contacto-value">afucar@gmail.com</span>
+        <span class="contacto-value">info@afucar.org.uy</span>
       </div>
     </div>
   </div>
@@ -974,7 +974,7 @@ function aplicarDatosUsuario(data, email, nombreGoogle){
     categoria_solicitada: data.categoria_solicitada, estado_categoria: data.estado_categoria,
     id_convenio: data.id_convenio
   };
-  document.getElementById('nombreUsuarioHeader').textContent = `${data.nombre} ${data.apellido}`;
+  document.getElementById('nombreUsuarioHeader').textContent = ((data.nombre[0]||'') + (data.apellido[0]||'')).toUpperCase();
   mostrarInfoCuenta(data);
   mostrarFormularioConsulta();
   cargarMisTickets();
