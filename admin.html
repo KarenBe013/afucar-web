@@ -450,7 +450,7 @@ let tokenClientGoogle;
 
 window.addEventListener('load', () => {
   if(!window.google || !google.accounts || !google.accounts.oauth2) return;
-  tokenClientGoogle = google.accounts.oauth2.initTokenClient({
+    tokenClientGoogle = google.accounts.oauth2.initTokenClient({
     client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
     scope: 'openid email profile',
     callback: (tokenResponse) => {
@@ -459,7 +459,7 @@ window.addEventListener('load', () => {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       })
       .then(res => res.json())
-      .then(perfil => procesarLoginAdmin(perfil.email, perfil.name))
+      .then(perfil => procesarLoginAdmin(perfil.email, tokenResponse.access_token))
       .catch(err => console.error('Error obteniendo perfil de Google:', err));
     }
   });
