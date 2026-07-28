@@ -469,8 +469,8 @@ document.getElementById('btnLoginDorado').addEventListener('click', () => {
   if(tokenClientGoogle) tokenClientGoogle.requestAccessToken();
 });
 
-function procesarLoginAdmin(email, nombre){
-  emailAdmin = email;
+function procesarLoginAdmin(email, token){
+  emailAdmin = token;
 
   document.getElementById('areaLoginHeader').style.display = 'none';
   document.getElementById('nombreUsuarioHeader').textContent = email;
