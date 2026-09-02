@@ -1182,12 +1182,18 @@ function cargarPagoSalon(){
 
 function pagoSalonItemHtml(r){
   const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const esDescuentoSueldo = r.forma_pago_sena === 'descuento_sueldo';
+  const formaPagoTxt = esDescuentoSueldo ? 'Descuento de sueldo' : 'Transferencia';
   return `
     <div class="card">
       <div class="card-top">
         <div><div class="card-title">${r.nombre_solicitante}</div>
         <div class="card-sub">${fechaTxt}</div></div>
+        <span class="tag" style="background:${esDescuentoSueldo ? 'rgba(201,162,39,.18)' : 'rgba(47,158,92,.15)'};color:${esDescuentoSueldo ? '#a4801f' : '#1f7a45'};">
+          ${esDescuentoSueldo ? '💰 ' : '🏦 '}${formaPagoTxt}
+        </span>
       </div>
+      ${esDescuentoSueldo ? `<div style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:4px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#a4801f;">⚠️ Recordá enviarlo a Retenciones</div>` : ''}
       <div class="datos-grid">
         <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
         ${r.link_comprobante_pago_salon
