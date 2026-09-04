@@ -844,11 +844,9 @@ function aplicarDatosUsuario(data, email){
   document.getElementById('loginGateBanner').style.display = 'none';
 
   if(!data.existe){
-    document.getElementById('loginGateBanner').innerHTML =
-      `<span>⚠️ Tu cuenta todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá</a> para ver el detalle de los convenios.</span>`;
-    document.getElementById('loginGateBanner').style.display = 'block';
-    document.getElementById('nombreUsuarioHeader').textContent = email;
-    renderConvenios(conveniosCache);
+    // Todavía no tiene cuenta: la mandamos directo al formulario de registro,
+    // sin que tenga que volver a loguearse con Google ahí.
+    window.location.href = `index.html?email=${encodeURIComponent(email)}#cuenta`;
     return;
   }
 
