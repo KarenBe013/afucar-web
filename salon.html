@@ -144,17 +144,20 @@
 
   /* ---------- Header en celulares: todo tiene que entrar en el ancho de la pantalla ---------- */
   @media (max-width:660px){
-    .nav-wrap{padding:10px 14px;gap:8px;}
-    .brand{gap:8px;}
-    .brand img,.brand-mark{width:32px;height:32px;}
+    .nav-wrap{padding:10px 12px;gap:6px;}
+    .brand{gap:6px;}
+    .brand img,.brand-mark{width:28px;height:28px;}
     .brand-text .eyebrow{display:none;}
-    .brand-text .name{font-size:17px;}
-    .btn-login{padding:7px 10px;font-size:12px;gap:5px;}
-    .btn-login svg{width:14px;height:14px;}
+    .brand-text .name{font-size:15px;}
+    .btn-login{padding:6px 9px;font-size:11px;gap:4px;}
+    .btn-login svg{width:13px;height:13px;}
+    #areaUsuarioHeader{gap:5px;font-size:11px;}
+    #nombreUsuarioHeader{width:20px;height:20px;font-size:9px;}
+    .btn-hamburguesa{width:28px;height:26px;}
+  }
+  /* Recién si la pantalla es angostísima (celulares muy viejos/chicos) escondemos el texto del botón */
+  @media (max-width:340px){
     .btn-login-label{display:none;}
-    #areaUsuarioHeader{gap:6px;font-size:12px;}
-    #nombreUsuarioHeader{width:22px;height:22px;font-size:10px;}
-    .btn-hamburguesa{width:30px;height:28px;}
   }
   .mobile-nav-panel{
     display:none;flex-direction:column;background:var(--navy-deep);
