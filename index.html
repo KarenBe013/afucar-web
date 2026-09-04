@@ -985,6 +985,11 @@ window.addEventListener('load', () => {
     aplicarDatosUsuario(sesionCache, sesionCache.email, '');
     // ...y en paralelo confirmamos con el servidor por si algo cambió mientras tanto
     procesarLoginReal(sesionCache.email, '');
+  } else {
+    // Si llegamos redirigidas desde otra página tras loguearnos con Google ahí
+    // (todavía no registradas), retomamos el registro sin pedir el login de nuevo.
+    const emailDesdeUrl = new URLSearchParams(window.location.search).get('email');
+    if(emailDesdeUrl) procesarLoginReal(emailDesdeUrl, '');
   }
 
   inicializarGoogleLogin();
@@ -1039,6 +1044,8 @@ function aplicarDatosUsuario(data, email, nombreGoogle){
     mostrarFormularioRegistro(email, nombreGoogle || '');
     document.getElementById('consultasCont').innerHTML =
       '<p style="color:var(--ink-soft);font-size:14px;">Completá tu registro arriba para poder escribirnos una consulta.</p>';
+    // Llevamos a la usuaria directo al formulario: es lo primero que tiene que ver.
+    document.getElementById('cuenta').scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
 
@@ -1173,6 +1180,9 @@ function mostrarInfoCuenta(data){
 function mostrarFormularioRegistro(email, nombreGoogle){
   document.getElementById('registroFormCont').innerHTML = `
     <div class="cuenta-card">
+      <p style="margin:0 0 14px;padding:10px 14px;border-radius:8px;background:#fff4e0;color:#8a5a00;font-size:14px;font-weight:600;">
+        ⚠️ Todavía no estás registrada/o. Completá tus datos para crear tu cuenta.
+      </p>
       <h3>Completá tu registro</h3>
       <form id="formRegistro">
         <div class="cuenta-field"><label>Nombre</label><input type="text" id="regNombre" value="${nombreGoogle}" required></div>

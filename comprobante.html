@@ -888,8 +888,9 @@ function aplicarDatosUsuario(data, email){
   document.getElementById('areaUsuarioHeader').style.display = 'flex';
 
   if(!data.existe){
-    document.getElementById('nombreUsuarioHeader').textContent = email;
-    mostrarEstado('estadoNoSocio');
+    // Todavía no tiene cuenta: la mandamos directo al formulario de registro,
+    // sin que tenga que volver a loguearse con Google ahí.
+    window.location.href = `index.html?email=${encodeURIComponent(email)}#cuenta`;
     return;
   }
 

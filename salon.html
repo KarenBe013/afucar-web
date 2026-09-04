@@ -1183,8 +1183,9 @@ function procesarLoginReal(email){
 
 function aplicarDatosUsuario(data, email){
   if(!data.existe){
-    document.getElementById('loginGateBanner').innerHTML =
-      `<span>⚠️ Tu cuenta de Google todavía no está registrada. <a href="index.html" style="color:#e8c766;text-decoration:underline;">Registrate acá primero</a>, y después volvé a esta página.</span>`;
+    // Todavía no tiene cuenta: la mandamos directo al formulario de registro,
+    // sin que tenga que volver a loguearse con Google ahí.
+    window.location.href = `index.html?email=${encodeURIComponent(email)}#cuenta`;
     return;
   }
 
