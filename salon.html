@@ -82,12 +82,12 @@
   }
   nav a:hover{color:#fff;background:rgba(255,255,255,.08);}
   .btn-login{
-    background:var(--gold);color:var(--navy-deep);white-space:nowrap;flex-shrink:0;
+    background:var(--paper-white);color:var(--navy-deep);white-space:nowrap;flex-shrink:0;
     padding:9px 18px;border-radius:4px;font-weight:700;font-size:13.5px;
-    transition:background .2s;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    transition:background .2s;border:1px solid var(--line);cursor:pointer;display:inline-flex;align-items:center;gap:8px;
     font-family:'Inter',sans-serif;
   }
-  .btn-login:hover{background:var(--gold-soft);}
+  .btn-login:hover{background:var(--paper);}
   #areaUsuarioHeader{
     display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;color:#dfe4ec;flex-shrink:0;
   }
@@ -140,6 +140,21 @@
   .btn-hamburguesa span{width:18px;height:2px;background:#fff;border-radius:2px;}
   @media (max-width:1450px){
     .btn-hamburguesa{display:flex;}
+  }
+
+  /* ---------- Header en celulares: todo tiene que entrar en el ancho de la pantalla ---------- */
+  @media (max-width:480px){
+    .nav-wrap{padding:10px 14px;gap:8px;}
+    .brand{gap:8px;}
+    .brand img,.brand-mark{width:32px;height:32px;}
+    .brand-text .eyebrow{display:none;}
+    .brand-text .name{font-size:17px;}
+    .btn-login{padding:7px 10px;font-size:12px;gap:5px;}
+    .btn-login svg{width:14px;height:14px;}
+    .btn-login-label{display:none;}
+    #areaUsuarioHeader{gap:6px;font-size:12px;}
+    #nombreUsuarioHeader{width:22px;height:22px;font-size:10px;}
+    .btn-hamburguesa{width:30px;height:28px;}
   }
   .mobile-nav-panel{
     display:none;flex-direction:column;background:var(--navy-deep);
@@ -722,14 +737,14 @@
       </ul>
     </nav>
     <div id="areaLoginHeader">
-      <button id="btnLoginDorado" class="btn-login">
+      <button id="btnLoginDorado" class="btn-login" aria-label="Ingresar con Google">
         <svg width="16" height="16" viewBox="0 0 48 48" style="flex-shrink:0;">
           <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.5 29.6 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5 44.5 35.3 44.5 24c0-1.2-.1-2.4-.4-3.5z"/>
           <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.9 19 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 6.5 29.6 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/>
           <path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.5 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.1-11.3-7.6l-6.6 5.1C9.6 40.1 16.3 44.5 24 44.5z"/>
           <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l6.5 5.5C41 35.9 44.5 30.5 44.5 24c0-1.2-.1-2.4-.9-3.5z"/>
         </svg>
-        Ingresar con Google
+        <span class="btn-login-label">Ingresar con Google</span>
       </button>
     </div>
     <div id="areaUsuarioHeader" style="display:none;">
