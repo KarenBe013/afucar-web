@@ -459,26 +459,58 @@ const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyZfr-CiJcOLq9WEHRF
 let emailAdmin = null;
 
 let tokenClientGoogle;
+// El script de Google (gsi/client) puede tardar en cargar (red lenta, bloqueador de
+// anuncios, etc.). Si el usuario hace clic antes de que esté listo, antes el botón
+// no hacía nada y quedaba "trancado". Ahora reintentamos la inicialización y, si
+// el clic llegó primero, disparamos el login apenas Google esté disponible.
+let loginSolicitadoPendiente = false;
+
+function inicializarGoogleLogin(intentos){
+  intentos = intentos || 0;
+  if(window.google && google.accounts && google.accounts.oauth2){
+    tokenClientGoogle = google.accounts.oauth2.initTokenClient({
+      client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
+      scope: 'openid email profile',
+      callback: (tokenResponse) => {
+        if(tokenResponse.error){
+          console.error('Error de Google OAuth:', tokenResponse.error);
+          alert('No se pudo completar el inicio de sesión con Google. Probá de nuevo.');
+          return;
+        }
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        })
+        .then(res => res.json())
+        .then(perfil => procesarLoginAdmin(perfil.email, tokenResponse.access_token))
+        .catch(err => {
+          console.error('Error obteniendo perfil de Google:', err);
+          alert('No se pudo conectar con el servidor de AFUCAR. Revisá tu conexión e intentá de nuevo.');
+        });
+      }
+    });
+    if(loginSolicitadoPendiente){
+      loginSolicitadoPendiente = false;
+      tokenClientGoogle.requestAccessToken();
+    }
+    return;
+  }
+  if(intentos < 20){
+    setTimeout(() => inicializarGoogleLogin(intentos + 1), 500);
+  } else {
+    console.error('No se pudo cargar el inicio de sesión de Google (accounts.google.com/gsi/client no respondió).');
+  }
+}
 
 window.addEventListener('load', () => {
-  if(!window.google || !google.accounts || !google.accounts.oauth2) return;
-  tokenClientGoogle = google.accounts.oauth2.initTokenClient({
-    client_id: '622049183176-plh0dvcvhnubd2ahhj5k956tuvrmot8v.apps.googleusercontent.com',
-    scope: 'openid email profile',
-    callback: (tokenResponse) => {
-      if(tokenResponse.error) return;
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-      })
-      .then(res => res.json())
-      .then(perfil => procesarLoginAdmin(perfil.email, tokenResponse.access_token))
-      .catch(err => console.error('Error obteniendo perfil de Google:', err));
-    }
-  });
+  inicializarGoogleLogin();
 });
 
 document.getElementById('btnLoginDorado').addEventListener('click', () => {
-  if(tokenClientGoogle) tokenClientGoogle.requestAccessToken();
+  if(tokenClientGoogle){
+    tokenClientGoogle.requestAccessToken();
+  } else {
+    loginSolicitadoPendiente = true;
+  }
 });
 
 function procesarLoginAdmin(email, token){
