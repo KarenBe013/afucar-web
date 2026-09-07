@@ -938,6 +938,26 @@ function aplicarDatosUsuario(data, email){
   });
 }
 
+function generarComprobanteConReintento(intento){
+  intento = intento || 1;
+  return fetch(URL_BACKEND, {
+    method: 'POST',
+    body: JSON.stringify({ accion: 'generarComprobanteSocio', email: usuarioReal.email })
+  })
+  .then(res => res.json())
+  .catch(err => {
+    // El primer intento puede fallar por un "arranque en frío" de Apps Script
+    // (la función tarda en inicializar cuando no se usó hace un rato).
+    // Si falla, reintentamos una sola vez en silencio antes de mostrar error.
+    if(intento < 2){
+      console.warn('Falló el intento ' + intento + ' de generar comprobante, reintentando...', err);
+      return new Promise(resolve => setTimeout(resolve, 2000))
+        .then(() => generarComprobanteConReintento(intento + 1));
+    }
+    throw err;
+  });
+}
+
 document.getElementById('btnGenerar').addEventListener('click', () => {
   const btn = document.getElementById('btnGenerar');
   const errorEl = document.getElementById('comprobanteError');
@@ -947,11 +967,7 @@ document.getElementById('btnGenerar').addEventListener('click', () => {
   btn.disabled = true;
   btn.textContent = 'Generando...';
 
-  fetch(URL_BACKEND, {
-    method: 'POST',
-    body: JSON.stringify({ accion: 'generarComprobanteSocio', email: usuarioReal.email })
-  })
-  .then(res => res.json())
+  generarComprobanteConReintento()
   .then(resp => {
     btn.disabled = false;
     btn.textContent = 'Generar comprobante';
