@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "365",
+    "slug": "365-pareja",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#241B2F",
+    "splash": {
+      "backgroundColor": "#241B2F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tuusuario.trescientossesentaycinco",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.tuusuario.trescientossesentaycinco",
+      "permissions": ["VIBRATE", "NOTIFICATIONS"]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#E0637A"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "PEGÁ-ACÁ-TU-PROJECT-ID-DE-EAS"
+      }
+    }
+  }
+}
