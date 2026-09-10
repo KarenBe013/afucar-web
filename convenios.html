@@ -286,6 +286,18 @@
     font-size:12px;color:var(--gold);font-weight:600;margin-top:10px;
     display:flex;align-items:center;gap:6px;
   }
+  .conv-seccion-titulo{
+    font-size:20px;font-weight:600;color:var(--navy-deep);font-family:'Source Serif 4',serif;
+    margin:40px 0 20px;
+  }
+  .conv-seccion-titulo:first-child{margin-top:0;}
+  .conv-contacto{
+    margin-top:56px;background:var(--paper-white);border:1px solid var(--line);border-radius:6px;
+    padding:32px 30px;
+  }
+  .conv-contacto h3{font-size:18px;color:var(--navy-deep);margin-bottom:10px;font-weight:600;}
+  .conv-contacto p{font-size:14px;color:var(--ink-soft);margin-bottom:6px;}
+  .conv-contacto a{color:var(--navy);font-weight:600;text-decoration:underline;}
   .conv-vacio{grid-column:1/-1;text-align:center;color:var(--ink-soft);padding:40px;}
 
   /* ---------- Salon ---------- */
@@ -676,9 +688,11 @@
       <span>🔒 Iniciá sesión para ver el detalle completo de cada convenio.</span>
     </div>
 
-    <div class="conv-grid" id="convGrid">
-      <p style="color:var(--ink-soft);grid-column:1/-1;">Cargando convenios...</p>
+    <div id="convGrid">
+      <div class="conv-grid"><p style="color:var(--ink-soft);grid-column:1/-1;">Cargando convenios...</p></div>
     </div>
+
+    <div id="convContacto" class="conv-contacto" style="display:none;"></div>
   </div>
 </section>
 
@@ -900,18 +914,32 @@ function aplicarDatosUsuario(data, email){
 
 /* ============ Convenios (datos reales) ============ */
 let conveniosCache = [];
+let seccionesConveniosCache = [];
 
 function cargarConvenios(){
-  fetch(`${URL_BACKEND}?accion=obtenerConveniosPublico`)
-    .then(res => res.json())
-    .then(data => {
-      conveniosCache = data.convenios || [];
-      renderConvenios(conveniosCache);
-    })
-    .catch(err => {
-      document.getElementById('convGrid').innerHTML = '<p class="conv-vacio">No se pudieron cargar los convenios. Probá recargar la página.</p>';
-      console.error(err);
-    });
+  Promise.all([
+    fetch(`${URL_BACKEND}?accion=obtenerSeccionesConvenios`).then(res => res.json()),
+    fetch(`${URL_BACKEND}?accion=obtenerConveniosPublico`).then(res => res.json())
+  ])
+  .then(([secciones, convenios]) => {
+    seccionesConveniosCache = secciones.secciones || [];
+    conveniosCache = convenios.convenios || [];
+    renderConvenios(conveniosCache);
+  })
+  .catch(err => {
+    document.getElementById('convGrid').innerHTML = '<p class="conv-vacio">No se pudieron cargar los convenios. Probá recargar la página.</p>';
+    console.error(err);
+  });
+}
+
+function tarjetaConvenio_(c){
+  return `
+    <div class="conv-card">
+      ${c.foto_url ? `<img src="${c.foto_url}" class="conv-foto" alt="${c.nombre_convenio}">` : ''}
+      <h3>${c.nombre_convenio}</h3>
+      <p class="conv-desc ${esSocioAprobado ? '' : 'bloqueada'}">${c.descripcion || 'Sin descripción cargada.'}</p>
+      ${esSocioAprobado ? '' : '<div class="lock-note">🔒 Iniciá sesión como socio aprobado para ver el detalle</div>'}
+    </div>`;
 }
 
 function renderConvenios(lista){
@@ -920,17 +948,47 @@ function renderConvenios(lista){
     cont.innerHTML = '<p class="conv-vacio">Todavía no hay convenios cargados.</p>';
     return;
   }
-  cont.innerHTML = lista.map(c => `
-    <div class="conv-card">
-      ${c.foto_url ? `<img src="${c.foto_url}" class="conv-foto" alt="${c.nombre_convenio}">` : ''}
-      <h3>${c.nombre_convenio}</h3>
-      <p class="conv-desc ${esSocioAprobado ? '' : 'bloqueada'}">${c.descripcion || 'Sin descripción cargada.'}</p>
-      ${esSocioAprobado ? '' : '<div class="lock-note">🔒 Iniciá sesión como socio aprobado para ver el detalle</div>'}
-    </div>
-  `).join('');
+
+  // Agrupamos por sección, en el orden en que están cargadas; lo que no tiene sección va al final.
+  const grupos = {};
+  lista.forEach(c => {
+    const clave = c.id_seccion || '__sin_seccion__';
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(c);
+  });
+
+  let html = '';
+  seccionesConveniosCache.forEach(s => {
+    if(!grupos[s.id_seccion]) return;
+    html += `<h3 class="conv-seccion-titulo">${s.nombre_seccion}</h3><div class="conv-grid">${grupos[s.id_seccion].map(tarjetaConvenio_).join('')}</div>`;
+    delete grupos[s.id_seccion];
+  });
+  if(grupos['__sin_seccion__']){
+    const titulo = seccionesConveniosCache.length ? '<h3 class="conv-seccion-titulo">Otros convenios</h3>' : '';
+    html += titulo + `<div class="conv-grid">${grupos['__sin_seccion__'].map(tarjetaConvenio_).join('')}</div>`;
+  }
+  cont.innerHTML = html;
+}
+
+function cargarContactoConvenios(){
+  fetch(`${URL_BACKEND}?accion=obtenerContactoConvenios`)
+    .then(res => res.json())
+    .then(data => {
+      if(!data.telefono && !data.email && !data.texto) return;
+      const cont = document.getElementById('convContacto');
+      cont.innerHTML = `
+        <h3>¿Tenés un comercio y querés sumarte?</h3>
+        ${data.texto ? `<p>${data.texto}</p>` : ''}
+        ${data.telefono ? `<p><strong>Teléfono:</strong> ${data.telefono}</p>` : ''}
+        ${data.email ? `<p><strong>Email:</strong> <a href="mailto:${data.email}">${data.email}</a></p>` : ''}
+      `;
+      cont.style.display = 'block';
+    })
+    .catch(err => console.error(err));
 }
 
 cargarConvenios();
+cargarContactoConvenios();
 
 /* ============ Notificaciones ============ */
 let notificacionesActuales = [];

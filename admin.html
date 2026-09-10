@@ -177,7 +177,23 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
   width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;
 }
 .media-borrar:hover{background:#b5442e;}
-.form-convenio input{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;}
+.form-convenio input, .form-convenio select{flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;}
+.form-convenio textarea{
+  width:100%;min-height:90px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;
+  font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;
+}
+.btn-ghost-mini{background:transparent;color:var(--navy);border:1px solid var(--line);padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-ghost-mini:hover{background:var(--paper);}
+.seccion-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 14px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--paper);
+}
+.seccion-row .nombre{font-size:13.5px;font-weight:600;color:var(--navy-deep);}
+.conv-seccion-heading{
+  font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;
+  margin:26px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line);
+}
+.conv-seccion-heading:first-child{margin-top:0;}
 
 .ticket-respuesta{margin-top:14px;display:flex;gap:10px;}
 .ticket-respuesta textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;}
@@ -296,18 +312,51 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
     <!-- CONVENIOS -->
     <div id="panelConvenios" class="panel-tab">
       <div class="card">
-        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Agregar convenio</h3>
-        <div class="form-convenio">
-          <input type="text" id="nuevoConvenioNombre" placeholder="Nombre del convenio (ej: Farmacia X)">
-          <input type="text" id="nuevoConvenioDesc" placeholder="Descripción breve del beneficio">
-        </div>
-        <div class="form-convenio" style="margin-top:10px;align-items:center;">
-          <label style="font-size:12.5px;color:var(--ink-soft);">Foto (opcional):</label>
-          <input type="file" id="nuevoConvenioFoto" accept="image/*">
-          <button class="btn-secundario" id="btnAgregarConvenio">Agregar</button>
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Secciones (ej: Hoteles, Clínicas)</h3>
+        <div id="listaSecciones" class="cargando">Cargando secciones...</div>
+        <div class="form-convenio" style="margin-top:14px;">
+          <input type="text" id="nuevaSeccionNombre" placeholder="Nombre de la sección (ej: Hoteles)">
+          <button class="btn-secundario" id="btnAgregarSeccion">Crear sección</button>
         </div>
       </div>
+
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;" id="tituloFormConvenio">Agregar convenio</h3>
+        <div class="form-convenio">
+          <input type="text" id="convenioNombre" placeholder="Nombre del convenio (ej: Farmacia X)">
+          <select id="convenioSeccion"><option value="">Sin sección</option></select>
+        </div>
+        <div class="form-convenio">
+          <textarea id="convenioDesc" placeholder="Descripción del beneficio" rows="4"></textarea>
+        </div>
+        <div class="form-convenio" style="align-items:center;">
+          <label style="font-size:12.5px;color:var(--ink-soft);">Foto (opcional):</label>
+          <input type="file" id="convenioFoto" accept="image/*">
+          <button class="btn-secundario" id="btnGuardarConvenio">Agregar</button>
+          <button class="btn-ghost-mini" id="btnCancelarEdicionConvenio" style="display:none;">Cancelar edición</button>
+        </div>
+        <input type="hidden" id="convenioIdEnEdicion" value="">
+      </div>
+
       <div id="listaConvenios" class="cargando">Cargando convenios...</div>
+
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Contacto para convenios</h3>
+        <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">
+          Se muestra al final de la página pública de Convenios, para comercios que quieran sumarse.
+        </p>
+        <div class="form-convenio">
+          <input type="text" id="contactoConvenioTelefono" placeholder="Teléfono">
+          <input type="text" id="contactoConvenioEmail" placeholder="Email">
+        </div>
+        <div class="form-convenio">
+          <textarea id="contactoConvenioTexto" placeholder="Texto adicional (ej: horario de atención, instrucciones)" rows="3"></textarea>
+        </div>
+        <div class="form-convenio">
+          <button class="btn-secundario" id="btnGuardarContactoConvenio">Guardar contacto</button>
+        </div>
+        <p id="contactoConvenioMensaje" style="font-size:12.5px;color:var(--ink-soft);margin-top:4px;"></p>
+      </div>
     </div>
 
     <!-- SIMULADOR -->
@@ -533,7 +582,8 @@ function procesarLoginAdmin(email, token){
   cargarSolicitudes();
   cargarReservasPendientes();
   cargarSocios();
-  cargarConvenios();
+  cargarSeccionesConvenios().then(cargarConvenios);
+  cargarContactoConvenios();
   cargarTickets();
   cargarCierre();
   cargarPagoSalon();
@@ -728,22 +778,90 @@ document.getElementById('filtroSocios').addEventListener('input', (e) => {
   renderTablaSocios(filtrados);
 });
 
-/* ============ Convenios ============ */
-function cargarConvenios(){
-  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+/* ============ Convenios: secciones ============ */
+let seccionesConveniosCache = [];
+let conveniosAdminCache = [];
+
+function cargarSeccionesConvenios(){
+  return fetch(`${URL_BACKEND}?accion=obtenerSeccionesConvenios`)
     .then(res => res.json())
-    .then(data => { if(data.error) return; renderConvenios(data.convenios || []); })
+    .then(data => {
+      seccionesConveniosCache = data.secciones || [];
+      renderSeccionesConvenios();
+      renderSelectSeccionesConvenio();
+    })
     .catch(err => console.error(err));
 }
 
-function renderConvenios(lista){
-  const cont = document.getElementById('listaConvenios');
-  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no cargaste ningún convenio.</p>'; return; }
-  cont.innerHTML = '';
-  lista.forEach(c => {
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = `
+function renderSeccionesConvenios(){
+  const cont = document.getElementById('listaSecciones');
+  if(seccionesConveniosCache.length === 0){
+    cont.innerHTML = '<p class="vacio">Todavía no creaste ninguna sección.</p>';
+    return;
+  }
+  cont.innerHTML = seccionesConveniosCache.map(s => `
+    <div class="seccion-row">
+      <span class="nombre">${s.nombre_seccion}</span>
+      <button class="btn-rechazar" data-id="${s.id_seccion}" style="padding:5px 12px;font-size:12.5px;">Eliminar</button>
+    </div>
+  `).join('');
+  cont.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Eliminar esta sección? Solo se puede borrar si no tiene convenios adentro.')) return;
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'eliminarSeccionConvenio', emailAdmin, idSeccion: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => {
+        if(data.error){ alert(data.error); return; }
+        cargarSeccionesConvenios();
+      })
+      .catch(err => console.error(err));
+    });
+  });
+}
+
+function renderSelectSeccionesConvenio(){
+  const sel = document.getElementById('convenioSeccion');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Sin sección</option>' +
+    seccionesConveniosCache.map(s => `<option value="${s.id_seccion}">${s.nombre_seccion}</option>`).join('');
+  sel.value = actual;
+}
+
+document.getElementById('btnAgregarSeccion').addEventListener('click', () => {
+  const nombre = document.getElementById('nuevaSeccionNombre').value.trim();
+  if(!nombre){ alert('Escribí el nombre de la sección.'); return; }
+  const btn = document.getElementById('btnAgregarSeccion');
+  btn.disabled = true;
+  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+    accion:'agregarSeccionConvenio', emailAdmin, nombre_seccion: nombre
+  })})
+  .then(res => res.json())
+  .then(data => {
+    btn.disabled = false;
+    if(data.error){ alert(data.error); return; }
+    document.getElementById('nuevaSeccionNombre').value = '';
+    cargarSeccionesConvenios();
+  })
+  .catch(err => { btn.disabled = false; console.error(err); });
+});
+
+/* ============ Convenios: alta / edición / baja ============ */
+function cargarConvenios(){
+  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error) return;
+      conveniosAdminCache = data.convenios || [];
+      renderConvenios(conveniosAdminCache);
+    })
+    .catch(err => console.error(err));
+}
+
+function tarjetaConvenioAdmin_(c){
+  return `
+    <div class="card">
       <div class="card-top">
         <div style="display:flex;gap:14px;align-items:flex-start;">
           ${c.foto_url ? `<img src="${c.foto_url}" style="width:56px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;" alt="">` : ''}
@@ -752,13 +870,39 @@ function renderConvenios(lista){
         <span class="tag ${c.activo === 'SI' ? 'aprobado' : 'rechazado'}">${c.activo === 'SI' ? 'Activo' : 'Inactivo'}</span>
       </div>
       <div class="card-acciones">
-        <button class="btn-secundario" data-id="${c.id_convenio}" data-nuevo="${c.activo === 'SI' ? 'NO' : 'SI'}">
+        <button class="btn-ghost-mini" data-accion="editar" data-id="${c.id_convenio}">Editar</button>
+        <button class="btn-secundario" data-accion="toggle" data-id="${c.id_convenio}" data-nuevo="${c.activo === 'SI' ? 'NO' : 'SI'}">
           ${c.activo === 'SI' ? 'Desactivar' : 'Activar'}
         </button>
-      </div>`;
-    cont.appendChild(div);
+        <button class="btn-rechazar" data-accion="eliminar" data-id="${c.id_convenio}">Eliminar</button>
+      </div>
+    </div>`;
+}
+
+function renderConvenios(lista){
+  const cont = document.getElementById('listaConvenios');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">Todavía no cargaste ningún convenio.</p>'; return; }
+
+  // Agrupamos por sección, respetando el orden de las secciones; lo que no tiene sección va al final.
+  const grupos = {};
+  lista.forEach(c => {
+    const clave = c.id_seccion || '__sin_seccion__';
+    if(!grupos[clave]) grupos[clave] = [];
+    grupos[clave].push(c);
   });
-  cont.querySelectorAll('button[data-id]').forEach(btn => {
+
+  let html = '';
+  seccionesConveniosCache.forEach(s => {
+    if(!grupos[s.id_seccion]) return;
+    html += `<div class="conv-seccion-heading">${s.nombre_seccion}</div>` + grupos[s.id_seccion].map(tarjetaConvenioAdmin_).join('');
+    delete grupos[s.id_seccion];
+  });
+  if(grupos['__sin_seccion__']){
+    html += `<div class="conv-seccion-heading">Sin sección</div>` + grupos['__sin_seccion__'].map(tarjetaConvenioAdmin_).join('');
+  }
+  cont.innerHTML = html;
+
+  cont.querySelectorAll('button[data-accion="toggle"]').forEach(btn => {
     btn.addEventListener('click', () => {
       fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
         accion:'actualizarEstadoConvenio', emailAdmin, idConvenio: btn.dataset.id, nuevoEstado: btn.dataset.nuevo
@@ -768,31 +912,74 @@ function renderConvenios(lista){
       .catch(err => console.error(err));
     });
   });
+
+  cont.querySelectorAll('button[data-accion="eliminar"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Eliminar este convenio? No se puede deshacer.')) return;
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'eliminarConvenio', emailAdmin, idConvenio: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); return; } cargarConvenios(); })
+      .catch(err => console.error(err));
+    });
+  });
+
+  cont.querySelectorAll('button[data-accion="editar"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const c = conveniosAdminCache.find(x => x.id_convenio === btn.dataset.id);
+      if(!c) return;
+      document.getElementById('convenioIdEnEdicion').value = c.id_convenio;
+      document.getElementById('convenioNombre').value = c.nombre_convenio;
+      document.getElementById('convenioDesc').value = c.descripcion || '';
+      document.getElementById('convenioSeccion').value = c.id_seccion || '';
+      document.getElementById('tituloFormConvenio').textContent = 'Editar convenio';
+      document.getElementById('btnGuardarConvenio').textContent = 'Guardar cambios';
+      document.getElementById('btnCancelarEdicionConvenio').style.display = 'inline-block';
+      document.getElementById('panelConvenios').scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
 }
 
-document.getElementById('btnAgregarConvenio').addEventListener('click', () => {
-  const nombre = document.getElementById('nuevoConvenioNombre').value.trim();
-  const desc = document.getElementById('nuevoConvenioDesc').value.trim();
-  const archivoInput = document.getElementById('nuevoConvenioFoto');
+function resetFormConvenio_(){
+  document.getElementById('convenioIdEnEdicion').value = '';
+  document.getElementById('convenioNombre').value = '';
+  document.getElementById('convenioDesc').value = '';
+  document.getElementById('convenioSeccion').value = '';
+  document.getElementById('convenioFoto').value = '';
+  document.getElementById('tituloFormConvenio').textContent = 'Agregar convenio';
+  document.getElementById('btnGuardarConvenio').textContent = 'Agregar';
+  document.getElementById('btnCancelarEdicionConvenio').style.display = 'none';
+}
+
+document.getElementById('btnCancelarEdicionConvenio').addEventListener('click', resetFormConvenio_);
+
+document.getElementById('btnGuardarConvenio').addEventListener('click', () => {
+  const idEnEdicion = document.getElementById('convenioIdEnEdicion').value;
+  const nombre = document.getElementById('convenioNombre').value.trim();
+  const desc = document.getElementById('convenioDesc').value.trim();
+  const idSeccion = document.getElementById('convenioSeccion').value;
+  const archivoInput = document.getElementById('convenioFoto');
   if(!nombre){ alert('Escribí el nombre del convenio.'); return; }
 
-  const btn = document.getElementById('btnAgregarConvenio');
-  btn.disabled = true; btn.textContent = 'Agregando...';
+  const btn = document.getElementById('btnGuardarConvenio');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = idEnEdicion ? 'Guardando...' : 'Agregando...';
 
   function enviar(fotoData){
-    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
-      accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc, foto: fotoData
-    })})
+    const body = idEnEdicion
+      ? { accion:'modificarConvenio', emailAdmin, idConvenio: idEnEdicion, nombre_convenio: nombre, descripcion: desc, id_seccion: idSeccion, foto: fotoData }
+      : { accion:'agregarConvenio', emailAdmin, nombre_convenio: nombre, descripcion: desc, id_seccion: idSeccion, foto: fotoData };
+
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify(body) })
     .then(res => res.json())
     .then(data => {
-      btn.disabled = false; btn.textContent = 'Agregar';
+      btn.disabled = false; btn.textContent = textoOriginal;
       if(data.error){ alert(data.error); return; }
-      document.getElementById('nuevoConvenioNombre').value = '';
-      document.getElementById('nuevoConvenioDesc').value = '';
-      archivoInput.value = '';
+      resetFormConvenio_();
       cargarConvenios();
     })
-    .catch(err => { btn.disabled = false; btn.textContent = 'Agregar'; console.error(err); });
+    .catch(err => { btn.disabled = false; btn.textContent = textoOriginal; console.error(err); });
   }
 
   if(archivoInput.files && archivoInput.files.length > 0){
@@ -806,6 +993,38 @@ document.getElementById('btnAgregarConvenio').addEventListener('click', () => {
   } else {
     enviar(null);
   }
+});
+
+/* ============ Convenios: contacto ============ */
+function cargarContactoConvenios(){
+  fetch(`${URL_BACKEND}?accion=obtenerContactoConvenios`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('contactoConvenioTelefono').value = data.telefono || '';
+      document.getElementById('contactoConvenioEmail').value = data.email || '';
+      document.getElementById('contactoConvenioTexto').value = data.texto || '';
+    })
+    .catch(err => console.error(err));
+}
+
+document.getElementById('btnGuardarContactoConvenio').addEventListener('click', () => {
+  const telefono = document.getElementById('contactoConvenioTelefono').value.trim();
+  const email = document.getElementById('contactoConvenioEmail').value.trim();
+  const texto = document.getElementById('contactoConvenioTexto').value.trim();
+  const btn = document.getElementById('btnGuardarContactoConvenio');
+  const msg = document.getElementById('contactoConvenioMensaje');
+  btn.disabled = true;
+  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+    accion:'actualizarContactoConvenios', emailAdmin, telefono, email, texto
+  })})
+  .then(res => res.json())
+  .then(data => {
+    btn.disabled = false;
+    if(data.error){ msg.textContent = data.error; return; }
+    msg.textContent = '✓ Contacto guardado.';
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  })
+  .catch(err => { btn.disabled = false; console.error(err); });
 });
 
 /* ============ Simulador ============ */
