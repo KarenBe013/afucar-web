@@ -624,7 +624,7 @@ const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase
 
 /* ============ Acceso / Solicitudes ============ */
 function cargarSolicitudes(){
-  fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       if(data.error){ mostrarAccesoDenegado(); return; }
@@ -688,7 +688,7 @@ function renderSolicitudes(lista){
 
 /* ============ Reservas pendientes ============ */
 function cargarReservasPendientes(){
-  fetch(`${URL_BACKEND}?accion=obtenerReservasPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerReservasPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => { if(data.error) return; renderReservas(data.reservas || []); })
     .catch(err => console.error(err));
@@ -745,7 +745,7 @@ function renderReservas(lista){
 /* ============ Socios (listado completo) ============ */
 let listaSociosCompleta = [];
 function cargarSocios(){
-  fetch(`${URL_BACKEND}?accion=obtenerListaUsuarios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerListaUsuarios&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => { if(data.error) return; listaSociosCompleta = data.usuarios || []; renderTablaSocios(listaSociosCompleta); })
     .catch(err => console.error(err));
@@ -783,7 +783,7 @@ let seccionesConveniosCache = [];
 let conveniosAdminCache = [];
 
 function cargarSeccionesConvenios(){
-  return fetch(`${URL_BACKEND}?accion=obtenerSeccionesConvenios`)
+  return fetch(`${URL_BACKEND}?accion=obtenerSeccionesConvenios&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       seccionesConveniosCache = data.secciones || [];
@@ -849,7 +849,7 @@ document.getElementById('btnAgregarSeccion').addEventListener('click', () => {
 
 /* ============ Convenios: alta / edición / baja ============ */
 function cargarConvenios(){
-  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerConvenios&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       if(data.error) return;
@@ -997,7 +997,7 @@ document.getElementById('btnGuardarConvenio').addEventListener('click', () => {
 
 /* ============ Convenios: contacto ============ */
 function cargarContactoConvenios(){
-  fetch(`${URL_BACKEND}?accion=obtenerContactoConvenios`)
+  fetch(`${URL_BACKEND}?accion=obtenerContactoConvenios&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       document.getElementById('contactoConvenioTelefono').value = data.telefono || '';
@@ -1112,7 +1112,7 @@ function cargarCalendarioYListado(){
   const mes = Number(document.getElementById('calMes').value);
   document.getElementById('detalleDiaCont').innerHTML = '';
 
-  fetch(`${URL_BACKEND}?accion=obtenerReservasDelMes&emailAdmin=${encodeURIComponent(emailAdmin)}&tipo=${tipo}&anio=${anio}&mes=${mes}`)
+  fetch(`${URL_BACKEND}?accion=obtenerReservasDelMes&emailAdmin=${encodeURIComponent(emailAdmin)}&tipo=${tipo}&anio=${anio}&mes=${mes}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       reservasDelMesActual = data.reservas || [];
@@ -1198,7 +1198,7 @@ function renderListadoMensual(lista, tipo, anio, mes){
 
 /* ============ Tickets ============ */
 function cargarTickets(){
-  fetch(`${URL_BACKEND}?accion=obtenerTicketsAdmin&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerTicketsAdmin&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => { if(data.error) return; renderTickets(data.tickets || []); })
     .catch(err => console.error(err));
@@ -1275,7 +1275,7 @@ function renderAgrupadoPorMes_(cont, lista, obtenerFecha, renderItemHtml, mensaj
 
 /* ============ Cierre de eventos (gastos y devolución de seña) ============ */
 function cargarCierre(){
-  fetch(`${URL_BACKEND}?accion=obtenerCierreEventos&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerCierreEventos&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => { if(data.error) return; renderCierre(data.eventos || []); })
     .catch(err => console.error(err));
@@ -1371,7 +1371,7 @@ document.getElementById('btnVerHistorial').addEventListener('click', () => {
 let historialCompleto = [];
 
 function cargarHistorialDevoluciones(){
-  fetch(`${URL_BACKEND}?accion=obtenerHistorialDevoluciones&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerHistorialDevoluciones&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       if(data.error) return;
@@ -1437,7 +1437,7 @@ function renderHistorialAgrupado(lista, expandirTodo){
 
 /* ============ Pagos del salón ============ */
 function cargarPagoSalon(){
-  fetch(`${URL_BACKEND}?accion=obtenerReservasFaltaPagoSalon&emailAdmin=${encodeURIComponent(emailAdmin)}`)
+  fetch(`${URL_BACKEND}?accion=obtenerReservasFaltaPagoSalon&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => { if(data.error) return; renderPagoSalon(data.reservas || []); })
     .catch(err => console.error(err));
@@ -1493,7 +1493,7 @@ document.getElementById('mediaTipoEspacio').addEventListener('change', cargarMed
 
 function cargarMediaAdmin(){
   const tipo = document.getElementById('mediaTipoEspacio').value;
-  fetch(`${URL_BACKEND}?accion=obtenerMediaSalon&tipo=${tipo}`)
+  fetch(`${URL_BACKEND}?accion=obtenerMediaSalon&tipo=${tipo}&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => renderMediaAdmin(data.media || []))
     .catch(err => console.error(err));
@@ -1571,7 +1571,7 @@ document.getElementById('btnSubirMedia').addEventListener('click', () => {
 
 /* ============ Directiva ============ */
 function cargarDirectivaAdmin(){
-  fetch(`${URL_BACKEND}?accion=obtenerDirectivaPublico`)
+  fetch(`${URL_BACKEND}?accion=obtenerDirectivaPublico&_ts=${Date.now()}`)
     .then(res => res.json())
     .then(data => renderDirectivaAdmin(data.directiva || []))
     .catch(err => console.error(err));
