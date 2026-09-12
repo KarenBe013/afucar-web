@@ -197,12 +197,29 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 
 .ticket-respuesta{margin-top:14px;display:flex;gap:10px;}
 .ticket-respuesta textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;}
-.nota-admin-wrap{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
-.nota-admin-wrap label{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:6px;}
-.nota-admin-wrap .nota-admin-fila{display:flex;gap:10px;align-items:flex-start;}
-.nota-admin-wrap textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;min-height:44px;}
 .respuesta-mostrada{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-top:10px;color:var(--ink-soft);}
 .respuesta-mostrada strong{color:var(--ink);}
+
+.btn-detalle{background:transparent;color:var(--navy);border:1px solid var(--line);padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
+.btn-detalle:hover{background:var(--paper);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,31,56,.55);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.activo{display:flex;}
+.modal-box{background:var(--paper-white);border-radius:8px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:26px;position:relative;}
+.modal-cerrar{position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:4px;}
+.modal-cerrar:hover{color:var(--ink);}
+.modal-titulo{font-size:19px;font-weight:600;color:var(--navy-deep);margin-bottom:2px;padding-right:30px;}
+.modal-subtitulo{font-size:13px;color:var(--ink-soft);margin-bottom:16px;}
+.modal-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.modal-seccion-titulo{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.modal-seccion-titulo:first-of-type{margin-top:0;}
+.notas-lista{max-height:230px;overflow-y:auto;margin-bottom:14px;}
+.nota-item{border-left:3px solid var(--gold);padding:8px 12px;margin-bottom:8px;background:var(--paper);border-radius:0 4px 4px 0;}
+.nota-item .nota-fecha{font-size:11px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:3px;}
+.nota-item .nota-texto{font-size:13.5px;color:var(--ink);white-space:pre-wrap;}
+.notas-vacio{font-size:13px;color:var(--ink-soft);padding:10px 0;}
+.nota-nueva-fila{display:flex;gap:10px;align-items:flex-start;}
+.nota-nueva-fila textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;min-height:44px;}
 
 .cierre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;font-size:13.5px;margin-bottom:16px;}
 .cierre-input-wrap{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
@@ -517,6 +534,14 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 
 </div>
 
+<!-- MODAL: Detalle completo de la reserva/evento -->
+<div id="modalDetalle" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-cerrar" id="btnCerrarModalDetalle">&times;</button>
+    <div id="modalDetalleContenido" class="cargando">Cargando...</div>
+  </div>
+</div>
+
 <script>
 const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyCbIZM6bHkPD10PE2U3RUkZZAom6UFAGW7PU969fu4gZNNSg7Nq1ShfsYR5fVXx05j/exec";
 let emailAdmin = null;
@@ -626,6 +651,119 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 function formatoPesos(n){ return '$ ' + Number(n).toLocaleString('es-UY'); }
 const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa' };
 
+/* ============ Modal: Detalle completo de una reserva/evento (pagos, comentarios, notas con fecha) ============ */
+function wireBotonesDetalle_(cont){
+  cont.querySelectorAll('.btn-detalle').forEach(btn => {
+    btn.addEventListener('click', () => abrirDetalleReserva(btn.dataset.id));
+  });
+}
+
+function abrirDetalleReserva(idReserva){
+  document.getElementById('modalDetalleContenido').innerHTML = '<div class="cargando">Cargando...</div>';
+  document.getElementById('modalDetalle').classList.add('activo');
+  cargarDetalleReserva_(idReserva);
+}
+
+function cargarDetalleReserva_(idReserva){
+  fetch(`${URL_BACKEND}?accion=obtenerDetalleReserva&idReserva=${encodeURIComponent(idReserva)}&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){ document.getElementById('modalDetalleContenido').innerHTML = `<p class="vacio">${data.error}</p>`; return; }
+      renderModalDetalle_(data.reserva, data.notas || []);
+    })
+    .catch(err => { console.error(err); document.getElementById('modalDetalleContenido').innerHTML = '<p class="vacio">No se pudo cargar el detalle.</p>'; });
+}
+
+function renderModalDetalle_(r, notas){
+  const tipoTxt = r.tipo_espacio === 'eventos' ? 'Salón de eventos' : 'Salón de talleres';
+  const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const inicio = new Date(r.hora_inicio);
+  const fin = new Date(r.hora_fin);
+  const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+
+  const ESTADOS_RESERVA = { pendiente:'Pendiente de aprobación', aprobada:'Aprobada', rechazada:'Rechazada' };
+  const ESTADOS_DEVOLUCION = { sin_procesar:'Cierre sin procesar', pendiente:'Devolución pendiente', no_corresponde:'No corresponde devolución', devuelta:'Devolución ya hecha' };
+  const formaPagoTxt = r.forma_pago_sena === 'descuento_sueldo' ? 'Descuento por sueldo' : (r.forma_pago_sena === 'transferencia' ? 'Transferencia' : '—');
+
+  const tags = [`<span class="tag">${ESTADOS_RESERVA[r.estado_reserva] || r.estado_reserva}</span>`];
+  if(r.tipo_espacio === 'eventos'){
+    tags.push(`<span class="tag" style="${r.pago_salon_confirmado === 'SI' ? '' : 'background:rgba(178,59,59,.12);color:#b23b3b;'}">${r.pago_salon_confirmado === 'SI' ? 'Pago del salón OK' : 'Falta pagar el salón'}</span>`);
+    if(r.estado_reserva === 'aprobada'){
+      tags.push(`<span class="tag">${ESTADOS_DEVOLUCION[r.estado_devolucion] || r.estado_devolucion}</span>`);
+    }
+  }
+
+  let html = `
+    <div class="modal-titulo">${r.nombre_solicitante}</div>
+    <div class="modal-subtitulo">${tipoTxt} · ${fechaTxt} · ${horaTxt}</div>
+    <div class="modal-tags">${tags.join('')}</div>
+
+    <div class="modal-seccion-titulo">Datos del evento</div>
+    <div class="datos-grid">
+      ${r.capacidad_personas ? `<div><span>Capacidad</span><strong>${r.capacidad_personas} personas</strong></div>` : ''}
+      <div><span>Categoría aplicada</span><strong>${r.categoria_aplicada}</strong></div>
+      <div><span>Precio alquiler</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+      ${r.es_tercero === 'SI' ? `<div><span>Reservado para un tercero</span><strong>${r.tercero_nombre} ${r.tercero_apellido} · ${r.tercero_telefono}</strong></div>` : ''}
+      ${r.comentarios ? `<div><span>Comentario del solicitante</span><strong>${r.comentarios}</strong></div>` : ''}
+    </div>
+
+    ${r.tipo_espacio === 'eventos' ? `
+    <div class="modal-seccion-titulo">Seña y pago del salón</div>
+    <div class="datos-grid">
+      <div><span>Seña</span><strong>${formatoPesos(r.monto_sena)}</strong></div>
+      <div><span>Forma de pago de la seña</span><strong>${formaPagoTxt}</strong></div>
+      ${r.link_comprobante_sena ? `<div><span>Comprobante de seña</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
+      <div><span>Pago del salón</span><strong>${r.pago_salon_confirmado === 'SI' ? 'Confirmado' : 'Pendiente'}</strong></div>
+      ${r.fecha_pago_salon ? `<div><span>Fecha de pago del salón</span><strong>${new Date(r.fecha_pago_salon).toLocaleDateString('es-UY')}</strong></div>` : ''}
+      ${r.link_comprobante_pago_salon ? `<div><span>Comprobante de pago del salón</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>` : ''}
+    </div>
+
+    <div class="modal-seccion-titulo">Cierre y devolución</div>
+    <div class="datos-grid">
+      <div><span>Consumo / roturas cargado</span><strong>${r.monto_consumido ? formatoPesos(r.monto_consumido) : '—'}</strong></div>
+      <div><span>A devolver</span><strong>${formatoPesos(r.sena_a_devolver)}</strong></div>
+      <div><span>Estado</span><strong>${ESTADOS_DEVOLUCION[r.estado_devolucion] || r.estado_devolucion}</strong></div>
+      ${r.fecha_devolucion ? `<div><span>Fecha de devolución</span><strong>${new Date(r.fecha_devolucion).toLocaleDateString('es-UY')}</strong></div>` : ''}
+    </div>` : ''}
+
+    <div class="modal-seccion-titulo">Notas del administrador</div>
+    <div class="notas-lista">
+      ${notas.length === 0
+        ? '<p class="notas-vacio">Todavía no hay notas para esta reserva.</p>'
+        : notas.map(n => `<div class="nota-item"><div class="nota-fecha">${n.fecha}</div><div class="nota-texto">${n.texto}</div></div>`).join('')}
+    </div>
+    <div class="nota-nueva-fila">
+      <textarea rows="2" id="textoNuevaNota" placeholder="Ej: consumieron $1500 de bebidas, falta descontarle el resto de la seña por sueldo..."></textarea>
+      <button class="btn-secundario" id="btnAgregarNota" data-id="${r.id_reserva}">Agregar nota</button>
+    </div>`;
+
+  document.getElementById('modalDetalleContenido').innerHTML = html;
+
+  document.getElementById('btnAgregarNota').addEventListener('click', () => {
+    const textarea = document.getElementById('textoNuevaNota');
+    const texto = textarea.value.trim();
+    if(!texto){ alert('Escribí algo antes de guardar la nota.'); return; }
+    const btn = document.getElementById('btnAgregarNota');
+    btn.disabled = true; btn.textContent = '...';
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'agregarNotaReserva', emailAdmin, idReserva: r.id_reserva, texto
+    })})
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){ alert(data.error); btn.disabled = false; btn.textContent = 'Agregar nota'; return; }
+      cargarDetalleReserva_(r.id_reserva);
+    })
+    .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Agregar nota'; });
+  });
+}
+
+document.getElementById('btnCerrarModalDetalle').addEventListener('click', () => {
+  document.getElementById('modalDetalle').classList.remove('activo');
+});
+document.getElementById('modalDetalle').addEventListener('click', (e) => {
+  if(e.target.id === 'modalDetalle') document.getElementById('modalDetalle').classList.remove('activo');
+});
+
 /* ============ Acceso / Solicitudes ============ */
 function cargarSolicitudes(){
   fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
@@ -730,9 +868,11 @@ function renderReservas(lista){
       <div class="card-acciones">
         <button class="btn-aprobar" data-id="${r.id_reserva}" data-accion="aprobada">Aprobar</button>
         <button class="btn-rechazar" data-id="${r.id_reserva}" data-accion="rechazada">Rechazar</button>
+        <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
       </div>`;
     cont.appendChild(div);
   });
+  wireBotonesDetalle_(cont);
   cont.querySelectorAll('.btn-aprobar, .btn-rechazar').forEach(btn => {
     btn.addEventListener('click', () => {
       btn.disabled = true; btn.textContent = '...';
@@ -1303,6 +1443,7 @@ function cierreItemHtml(ev){
       </div>
       <div class="datos-grid">
         <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
+        <div><span>Pago del salón</span><strong style="${ev.pago_salon_confirmado === 'SI' ? '' : 'color:#b23b3b;'}">${ev.pago_salon_confirmado === 'SI' ? 'Ya lo pagó ✓' : 'Todavía le falta pagar'}</strong></div>
       </div>
       <div class="cierre-input-wrap">
         <div>
@@ -1312,10 +1453,12 @@ function cierreItemHtml(ev){
         <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
       </div>
       ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
-      ${ev.estado_devolucion === 'pendiente'
-        ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
-        : ''}
-      ${notaAdminHtml_(ev.id_reserva, ev.notas_admin)}
+      <div class="card-acciones">
+        ${ev.estado_devolucion === 'pendiente'
+          ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
+          : ''}
+        <button class="btn-detalle" data-id="${ev.id_reserva}">Ver detalle y notas</button>
+      </div>
     </div>`;
 }
 
@@ -1323,7 +1466,7 @@ function renderCierre(lista){
   document.getElementById('badgeCierre').textContent = lista.length;
   const cont = document.getElementById('listaCierre');
   renderAgrupadoPorMes_(cont, lista, ev => new Date(ev.fecha), cierreItemHtml, 'No hay eventos pasados esperando cierre.');
-  wireNotasAdmin_(cont);
+  wireBotonesDetalle_(cont);
 
   cont.querySelectorAll('.btn-calcular').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1449,38 +1592,6 @@ function cargarPagoSalon(){
     .catch(err => console.error(err));
 }
 
-/* ============ Notas del admin (compartido: Pagos del salón y Cierre de eventos) ============ */
-function notaAdminHtml_(idReserva, notaActual){
-  return `
-    <div class="nota-admin-wrap">
-      <label>Comentario / nota</label>
-      <div class="nota-admin-fila">
-        <textarea rows="2" class="input-nota-admin" data-id="${idReserva}" placeholder="Ej: transfirió $4000, falta descontarle el resto por sueldo...">${notaActual || ''}</textarea>
-        <button class="btn-ghost-mini btn-guardar-nota" data-id="${idReserva}">Guardar</button>
-      </div>
-    </div>`;
-}
-
-function wireNotasAdmin_(cont){
-  cont.querySelectorAll('.btn-guardar-nota').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const textarea = cont.querySelector(`.input-nota-admin[data-id="${btn.dataset.id}"]`);
-      const nota = textarea.value.trim();
-      btn.disabled = true; btn.textContent = '...';
-      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
-        accion:'guardarNotaAdmin', emailAdmin, idReserva: btn.dataset.id, nota
-      })})
-      .then(res => res.json())
-      .then(data => {
-        if(data.error){ alert(data.error); btn.disabled = false; btn.textContent = 'Guardar'; return; }
-        btn.textContent = '✓ Guardado';
-        setTimeout(() => { btn.disabled = false; btn.textContent = 'Guardar'; }, 1200);
-      })
-      .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Guardar'; });
-    });
-  });
-}
-
 function pagoSalonItemHtml(r){
   const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
   const esDescuentoSueldo = r.forma_pago_sena === 'descuento_sueldo';
@@ -1503,8 +1614,8 @@ function pagoSalonItemHtml(r){
       </div>
       <div class="card-acciones">
         <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
+        <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
       </div>
-      ${notaAdminHtml_(r.id_reserva, r.notas_admin)}
     </div>`;
 }
 
@@ -1512,7 +1623,7 @@ function renderPagoSalon(lista){
   document.getElementById('badgePagoSalon').textContent = lista.length;
   const cont = document.getElementById('listaPagoSalon');
   renderAgrupadoPorMes_(cont, lista, r => new Date(r.fecha), pagoSalonItemHtml, 'No hay pagos de salón pendientes de confirmar.');
-  wireNotasAdmin_(cont);
+  wireBotonesDetalle_(cont);
 
   cont.querySelectorAll('.btn-aprobar').forEach(btn => {
     btn.addEventListener('click', () => {
