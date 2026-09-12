@@ -273,16 +273,25 @@
 
   /* ---------- Convenios ---------- */
   .convenios{background:var(--paper);}
-  .conv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .conv-lista{display:flex;flex-direction:column;gap:10px;}
   .conv-card{
-    background:var(--paper-white);border:1px solid var(--line);border-radius:4px;
-    padding:28px 26px;position:relative;
+    background:var(--paper-white);border:1px solid var(--line);border-radius:6px;overflow:hidden;
   }
-  .conv-foto{width:100%;height:140px;object-fit:cover;border-radius:4px;margin-bottom:16px;}
-  .conv-card h3{font-size:18px;color:var(--navy-deep);margin-bottom:10px;font-weight:600;}
-  .conv-card p{font-size:14px;color:var(--ink-soft);}
-  .conv-card .conv-desc.bloqueada{filter:blur(4px);user-select:none;}
-  .conv-card .lock-note{
+  .conv-card summary{
+    padding:14px 20px;cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:16px;
+  }
+  .conv-card summary::-webkit-details-marker{display:none;}
+  .conv-card summary:hover{background:var(--paper);}
+  .conv-foto{width:52px;height:52px;border-radius:4px;object-fit:cover;flex-shrink:0;}
+  .conv-foto-vacia{width:52px;height:52px;border-radius:4px;background:var(--paper);flex-shrink:0;}
+  .conv-card h3{font-size:16px;color:var(--navy-deep);font-weight:600;flex:1;margin:0;}
+  .conv-flecha{color:var(--ink-soft);font-size:12px;flex-shrink:0;transition:transform .15s;}
+  .conv-card[open] .conv-flecha{transform:rotate(180deg);}
+  .conv-card-body{padding:0 20px 18px 88px;}
+  .conv-card-body p{font-size:14px;color:var(--ink-soft);}
+  .conv-card-body .conv-desc.bloqueada{filter:blur(4px);user-select:none;}
+  .conv-card-body .lock-note{
     font-size:12px;color:var(--gold);font-weight:600;margin-top:10px;
     display:flex;align-items:center;gap:6px;
   }
@@ -532,8 +541,13 @@
   @media (max-width:880px){
     .hero-wrap{grid-template-columns:1fr;padding-top:56px;}
     .hero-emblem{order:-1;}
-    .inst-grid, .conv-grid, .salon-grid, .directiva{grid-template-columns:1fr;}
+    .inst-grid, .salon-grid, .directiva{grid-template-columns:1fr;}
     nav{display:none;}
+  }
+  @media (max-width:480px){
+    .conv-card summary{gap:12px;padding:12px 14px;}
+    .conv-foto, .conv-foto-vacia{width:40px;height:40px;}
+    .conv-card-body{padding-left:14px;}
   }
 /* ============================================================
    Estilos para el sitio multi-página (portada corta + páginas internas)
@@ -689,7 +703,7 @@
     </div>
 
     <div id="convGrid">
-      <div class="conv-grid"><p style="color:var(--ink-soft);grid-column:1/-1;">Cargando convenios...</p></div>
+      <p style="color:var(--ink-soft);">Cargando convenios...</p>
     </div>
 
     <div id="convContacto" class="conv-contacto" style="display:none;"></div>
@@ -934,12 +948,17 @@ function cargarConvenios(){
 
 function tarjetaConvenio_(c){
   return `
-    <div class="conv-card">
-      ${c.foto_url ? `<img src="${c.foto_url}" class="conv-foto" alt="${c.nombre_convenio}">` : ''}
-      <h3>${c.nombre_convenio}</h3>
-      <p class="conv-desc ${esSocioAprobado ? '' : 'bloqueada'}">${c.descripcion || 'Sin descripción cargada.'}</p>
-      ${esSocioAprobado ? '' : '<div class="lock-note">🔒 Iniciá sesión como socio aprobado para ver el detalle</div>'}
-    </div>`;
+    <details class="conv-card">
+      <summary>
+        ${c.foto_url ? `<img src="${c.foto_url}" class="conv-foto" alt="${c.nombre_convenio}">` : `<div class="conv-foto-vacia"></div>`}
+        <h3>${c.nombre_convenio}</h3>
+        <span class="conv-flecha">▾</span>
+      </summary>
+      <div class="conv-card-body">
+        <p class="conv-desc ${esSocioAprobado ? '' : 'bloqueada'}">${c.descripcion || 'Sin descripción cargada.'}</p>
+        ${esSocioAprobado ? '' : '<div class="lock-note">🔒 Iniciá sesión como socio aprobado para ver el detalle</div>'}
+      </div>
+    </details>`;
 }
 
 function renderConvenios(lista){
@@ -960,12 +979,12 @@ function renderConvenios(lista){
   let html = '';
   seccionesConveniosCache.forEach(s => {
     if(!grupos[s.id_seccion]) return;
-    html += `<h3 class="conv-seccion-titulo">${s.nombre_seccion}</h3><div class="conv-grid">${grupos[s.id_seccion].map(tarjetaConvenio_).join('')}</div>`;
+    html += `<h3 class="conv-seccion-titulo">${s.nombre_seccion}</h3><div class="conv-lista">${grupos[s.id_seccion].map(tarjetaConvenio_).join('')}</div>`;
     delete grupos[s.id_seccion];
   });
   if(grupos['__sin_seccion__']){
     const titulo = seccionesConveniosCache.length ? '<h3 class="conv-seccion-titulo">Otros convenios</h3>' : '';
-    html += titulo + `<div class="conv-grid">${grupos['__sin_seccion__'].map(tarjetaConvenio_).join('')}</div>`;
+    html += titulo + `<div class="conv-lista">${grupos['__sin_seccion__'].map(tarjetaConvenio_).join('')}</div>`;
   }
   cont.innerHTML = html;
 }
