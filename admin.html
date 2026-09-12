@@ -1875,8 +1875,12 @@ function renderDirectivaAdmin(lista){
   cont.innerHTML = lista.map(p => `
     <div class="media-item" style="aspect-ratio:auto;padding-bottom:10px;">
       ${p.foto_url
-        ? `<img src="${p.foto_url}" alt="" style="aspect-ratio:1/1;">`
+        ? `<div style="aspect-ratio:1/1;overflow:hidden;"><img src="${p.foto_url}" alt="" class="foto-directiva-admin" data-id="${p.id}" style="width:100%;height:100%;object-fit:cover;object-position:50% ${p.foto_posicion != null ? p.foto_posicion : 50}%;"></div>`
         : `<div style="aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:var(--paper);color:var(--ink-soft);font-size:12px;">Sin foto</div>`}
+      ${p.foto_url ? `<div style="padding:8px 10px 0;">
+        <label style="display:block;font-size:10px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:3px;">Ajustar encuadre (que no se corte la cabeza)</label>
+        <input type="range" min="0" max="100" value="${p.foto_posicion != null ? p.foto_posicion : 50}" class="slider-posicion-foto" data-id="${p.id}" style="width:100%;">
+      </div>` : ''}
       <div style="padding:8px 10px 0;">
         <div style="font-size:13px;font-weight:600;color:var(--navy-deep);">${p.nombre}</div>
         <div style="font-size:12px;color:var(--gold);font-weight:600;">${p.cargo}</div>
@@ -1884,6 +1888,21 @@ function renderDirectivaAdmin(lista){
       <button class="media-borrar" data-id="${p.id}" title="Borrar">✕</button>
     </div>
   `).join('');
+
+  cont.querySelectorAll('.slider-posicion-foto').forEach(slider => {
+    const img = cont.querySelector(`.foto-directiva-admin[data-id="${slider.dataset.id}"]`);
+    slider.addEventListener('input', () => {
+      img.style.objectPosition = `50% ${slider.value}%`;
+    });
+    slider.addEventListener('change', () => {
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'actualizarPosicionFotoDirectiva', emailAdmin, idIntegrante: slider.dataset.id, posicion: Number(slider.value)
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error) alert(data.error); })
+      .catch(err => console.error(err));
+    });
+  });
 
   cont.querySelectorAll('.media-borrar').forEach(btn => {
     btn.addEventListener('click', () => {
