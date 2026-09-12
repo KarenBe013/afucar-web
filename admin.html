@@ -197,6 +197,10 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 
 .ticket-respuesta{margin-top:14px;display:flex;gap:10px;}
 .ticket-respuesta textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;}
+.nota-admin-wrap{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+.nota-admin-wrap label{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:6px;}
+.nota-admin-wrap .nota-admin-fila{display:flex;gap:10px;align-items:flex-start;}
+.nota-admin-wrap textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;min-height:44px;}
 .respuesta-mostrada{background:var(--paper);border-radius:4px;padding:12px 14px;font-size:13.5px;margin-top:10px;color:var(--ink-soft);}
 .respuesta-mostrada strong{color:var(--ink);}
 
@@ -1311,6 +1315,7 @@ function cierreItemHtml(ev){
       ${ev.estado_devolucion === 'pendiente'
         ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
         : ''}
+      ${notaAdminHtml_(ev.id_reserva, ev.notas_admin)}
     </div>`;
 }
 
@@ -1318,6 +1323,7 @@ function renderCierre(lista){
   document.getElementById('badgeCierre').textContent = lista.length;
   const cont = document.getElementById('listaCierre');
   renderAgrupadoPorMes_(cont, lista, ev => new Date(ev.fecha), cierreItemHtml, 'No hay eventos pasados esperando cierre.');
+  wireNotasAdmin_(cont);
 
   cont.querySelectorAll('.btn-calcular').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1443,6 +1449,38 @@ function cargarPagoSalon(){
     .catch(err => console.error(err));
 }
 
+/* ============ Notas del admin (compartido: Pagos del salón y Cierre de eventos) ============ */
+function notaAdminHtml_(idReserva, notaActual){
+  return `
+    <div class="nota-admin-wrap">
+      <label>Comentario / nota</label>
+      <div class="nota-admin-fila">
+        <textarea rows="2" class="input-nota-admin" data-id="${idReserva}" placeholder="Ej: transfirió $4000, falta descontarle el resto por sueldo...">${notaActual || ''}</textarea>
+        <button class="btn-ghost-mini btn-guardar-nota" data-id="${idReserva}">Guardar</button>
+      </div>
+    </div>`;
+}
+
+function wireNotasAdmin_(cont){
+  cont.querySelectorAll('.btn-guardar-nota').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const textarea = cont.querySelector(`.input-nota-admin[data-id="${btn.dataset.id}"]`);
+      const nota = textarea.value.trim();
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'guardarNotaAdmin', emailAdmin, idReserva: btn.dataset.id, nota
+      })})
+      .then(res => res.json())
+      .then(data => {
+        if(data.error){ alert(data.error); btn.disabled = false; btn.textContent = 'Guardar'; return; }
+        btn.textContent = '✓ Guardado';
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Guardar'; }, 1200);
+      })
+      .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Guardar'; });
+    });
+  });
+}
+
 function pagoSalonItemHtml(r){
   const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
   const esDescuentoSueldo = r.forma_pago_sena === 'descuento_sueldo';
@@ -1466,6 +1504,7 @@ function pagoSalonItemHtml(r){
       <div class="card-acciones">
         <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
       </div>
+      ${notaAdminHtml_(r.id_reserva, r.notas_admin)}
     </div>`;
 }
 
@@ -1473,6 +1512,7 @@ function renderPagoSalon(lista){
   document.getElementById('badgePagoSalon').textContent = lista.length;
   const cont = document.getElementById('listaPagoSalon');
   renderAgrupadoPorMes_(cont, lista, r => new Date(r.fecha), pagoSalonItemHtml, 'No hay pagos de salón pendientes de confirmar.');
+  wireNotasAdmin_(cont);
 
   cont.querySelectorAll('.btn-aprobar').forEach(btn => {
     btn.addEventListener('click', () => {
