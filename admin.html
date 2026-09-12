@@ -235,6 +235,11 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 .notas-vacio{font-size:13px;color:var(--ink-soft);padding:10px 0;}
 .nota-nueva-fila{display:flex;gap:10px;align-items:flex-start;}
 .nota-nueva-fila textarea{flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;font-family:'Inter',sans-serif;resize:vertical;min-height:44px;}
+.modal-acciones{display:flex;gap:10px;flex-wrap:wrap;}
+.form-editar-reserva{margin-top:14px;padding:14px;background:var(--paper);border-radius:6px;}
+.form-editar-reserva label{display:block;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+.form-editar-reserva input{padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;width:100%;box-sizing:border-box;}
+.form-editar-reserva .datos-grid{margin-bottom:14px;}
 
 .cierre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 20px;font-size:13.5px;margin-bottom:16px;}
 .cierre-input-wrap{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
@@ -696,11 +701,14 @@ function renderModalDetalle_(r, notas){
   const fin = new Date(r.hora_fin);
   const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
 
-  const ESTADOS_RESERVA = { pendiente:'Pendiente de aprobación', aprobada:'Aprobada', rechazada:'Rechazada' };
+  const ESTADOS_RESERVA = { pendiente:'Pendiente de aprobación', aprobada:'Aprobada', rechazada:'Rechazada', cancelada:'Cancelada' };
   const ESTADOS_DEVOLUCION = { sin_procesar:'Cierre sin procesar', pendiente:'Devolución pendiente', no_corresponde:'No corresponde devolución', devuelta:'Devolución ya hecha' };
   const formaPagoTxt = r.forma_pago_sena === 'descuento_sueldo' ? 'Descuento por sueldo' : (r.forma_pago_sena === 'transferencia' ? 'Transferencia' : '—');
+  const puedeModificar = r.estado_reserva === 'pendiente' || r.estado_reserva === 'aprobada';
 
-  const tags = [`<span class="tag">${ESTADOS_RESERVA[r.estado_reserva] || r.estado_reserva}</span>`];
+  const estadoTagStyle = (r.estado_reserva === 'cancelada' || r.estado_reserva === 'rechazada') ? 'background:rgba(181,68,46,.12);color:#b5442e;'
+    : (r.estado_reserva === 'aprobada' ? 'background:rgba(47,158,92,.12);color:#1f7a45;' : '');
+  const tags = [`<span class="tag" style="${estadoTagStyle}">${ESTADOS_RESERVA[r.estado_reserva] || r.estado_reserva}</span>`];
   if(r.tipo_espacio === 'eventos'){
     tags.push(`<span class="tag" style="${r.pago_salon_confirmado === 'SI' ? '' : 'background:rgba(178,59,59,.12);color:#b23b3b;'}">${r.pago_salon_confirmado === 'SI' ? 'Pago del salón OK' : 'Falta pagar el salón'}</span>`);
     if(r.estado_reserva === 'aprobada'){
@@ -741,6 +749,45 @@ function renderModalDetalle_(r, notas){
       ${r.fecha_devolucion ? `<div><span>Fecha de devolución</span><strong>${new Date(r.fecha_devolucion).toLocaleDateString('es-UY')}</strong></div>` : ''}
     </div>` : ''}
 
+    ${puedeModificar ? `
+    <div class="modal-seccion-titulo">Acciones</div>
+    <div class="modal-acciones">
+      <button class="btn-ghost-mini" id="btnMostrarEditar">Modificar evento</button>
+      <button class="btn-rechazar" id="btnCancelarReserva">Cancelar reserva</button>
+    </div>
+    <div id="formEditarReserva" class="form-editar-reserva" style="display:none;">
+      <div class="datos-grid">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="editFecha" value="${fechaInputValue_(inicio)}">
+        </div>
+        <div>
+          <label>Hora inicio</label>
+          <input type="time" id="editHoraInicio" value="${hhmm_(inicio)}">
+        </div>
+        <div>
+          <label>Hora fin</label>
+          <input type="time" id="editHoraFin" value="${hhmm_(fin)}">
+        </div>
+        ${r.tipo_espacio === 'eventos' ? `<div>
+          <label>Capacidad (personas)</label>
+          <input type="number" min="0" id="editCapacidad" value="${r.capacidad_personas || ''}">
+        </div>` : ''}
+        <div>
+          <label>Precio alquiler ($)</label>
+          <input type="number" min="0" id="editPrecio" value="${r.precio_alquiler || 0}">
+        </div>
+        ${r.tipo_espacio === 'eventos' ? `<div>
+          <label>Seña ($)</label>
+          <input type="number" min="0" id="editSena" value="${r.monto_sena || 0}">
+        </div>` : ''}
+      </div>
+      <div class="card-acciones">
+        <button class="btn-secundario" id="btnGuardarEdicion">Guardar cambios</button>
+        <button class="btn-ghost-mini" id="btnCancelarEdicion">Cerrar sin guardar</button>
+      </div>
+    </div>` : ''}
+
     <div class="modal-seccion-titulo">Notas del administrador</div>
     <div class="notas-lista">
       ${notas.length === 0
@@ -770,6 +817,71 @@ function renderModalDetalle_(r, notas){
     })
     .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Agregar nota'; });
   });
+
+  if(!puedeModificar) return;
+
+  document.getElementById('btnMostrarEditar').addEventListener('click', () => {
+    const form = document.getElementById('formEditarReserva');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('btnCancelarEdicion').addEventListener('click', () => {
+    document.getElementById('formEditarReserva').style.display = 'none';
+  });
+
+  document.getElementById('btnGuardarEdicion').addEventListener('click', () => {
+    const fecha = document.getElementById('editFecha').value;
+    const horaInicio = document.getElementById('editHoraInicio').value;
+    const horaFin = document.getElementById('editHoraFin').value;
+    if(!fecha || !horaInicio || !horaFin){ alert('Completá la fecha y el horario.'); return; }
+
+    const body = { accion:'modificarReserva', emailAdmin, idReserva: r.id_reserva, fecha, horaInicio, horaFin };
+    const precioEl = document.getElementById('editPrecio');
+    if(precioEl) body.precioAlquiler = precioEl.value;
+    const capacidadEl = document.getElementById('editCapacidad');
+    if(capacidadEl) body.capacidadPersonas = capacidadEl.value;
+    const senaEl = document.getElementById('editSena');
+    if(senaEl) body.montoSena = senaEl.value;
+
+    const btn = document.getElementById('btnGuardarEdicion');
+    btn.disabled = true; btn.textContent = '...';
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify(body) })
+      .then(res => res.json())
+      .then(data => {
+        if(data.error){ alert(data.error); btn.disabled = false; btn.textContent = 'Guardar cambios'; return; }
+        cargarDetalleReserva_(r.id_reserva);
+        refrescarListasReservas_();
+      })
+      .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Guardar cambios'; });
+  });
+
+  document.getElementById('btnCancelarReserva').addEventListener('click', () => {
+    if(!confirm('¿Confirmás que querés cancelar esta reserva? Se va a liberar la fecha y el horario, y se le va a avisar por mail a la persona.')) return;
+    const btn = document.getElementById('btnCancelarReserva');
+    btn.disabled = true; btn.textContent = '...';
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'actualizarEstadoReserva', emailAdmin, idReserva: r.id_reserva, nuevoEstado: 'cancelada'
+    })})
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){ alert(data.error); btn.disabled = false; btn.textContent = 'Cancelar reserva'; return; }
+      document.getElementById('modalDetalle').classList.remove('activo');
+      refrescarListasReservas_();
+    })
+    .catch(err => { console.error(err); btn.disabled = false; btn.textContent = 'Cancelar reserva'; });
+  });
+}
+
+function fechaInputValue_(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function hhmm_(d){
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function refrescarListasReservas_(){
+  cargarReservasPendientes();
+  cargarCierre();
+  cargarPagoSalon();
+  cargarCalendarioYListado();
 }
 
 document.getElementById('btnCerrarModalDetalle').addEventListener('click', () => {
@@ -1324,10 +1436,12 @@ function mostrarDetalleDia(dia, celda){
       <strong>${r.nombre_solicitante}</strong><br>
       ${horaTxt} · ${r.capacidad_personas ? r.capacidad_personas + ' personas' : ''} ·
       <span class="tag ${r.estado_reserva === 'aprobada' ? 'aprobado' : 'pendiente'}">${r.estado_reserva}</span>
+      <button class="btn-detalle" style="margin-top:6px;padding:5px 12px;font-size:12.5px;" data-id="${r.id_reserva}">Ver / modificar / cancelar</button>
     </div>`;
   });
   html += '</div>';
   cont.innerHTML = html;
+  wireBotonesDetalle_(cont);
 }
 
 function renderListadoMensual(lista, tipo, anio, mes){
