@@ -118,18 +118,33 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
   background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
   margin-bottom:12px;overflow:hidden;
 }
-.grupo-mes summary{
+.grupo-mes > summary{
   padding:14px 18px;cursor:pointer;font-size:14px;font-weight:600;color:var(--navy-deep);
   display:flex;justify-content:space-between;align-items:center;list-style:none;
 }
-.grupo-mes summary::-webkit-details-marker{display:none;}
-.grupo-mes summary::after{content:"▾";color:var(--ink-soft);font-size:12px;}
-.grupo-mes[open] summary::after{content:"▴";}
-.grupo-mes summary .cant{
+.grupo-mes > summary::-webkit-details-marker{display:none;}
+.grupo-mes > summary::after{content:"▾";color:var(--ink-soft);font-size:12px;}
+.grupo-mes[open] > summary::after{content:"▴";}
+.grupo-mes > summary .cant{
   font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--paper);
   padding:2px 9px;border-radius:10px;margin-left:auto;margin-right:12px;
 }
 .grupo-mes table.tabla{border:none;border-radius:0;border-top:1px solid var(--line);}
+
+.evento-row{border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--paper-white);overflow:hidden;}
+.evento-row:last-child{margin-bottom:0;}
+.evento-row summary{
+  padding:11px 14px;cursor:pointer;list-style:none;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.evento-row summary::-webkit-details-marker{display:none;}
+.evento-row summary:hover{background:var(--paper);}
+.evento-row-nombre{font-weight:600;color:var(--navy-deep);font-size:14px;}
+.evento-row-fecha{font-size:12.5px;color:var(--ink-soft);}
+.evento-row-flecha{margin-left:auto;color:var(--ink-soft);font-size:11px;flex-shrink:0;transition:transform .15s;}
+.evento-row[open] .evento-row-flecha{transform:rotate(180deg);}
+.evento-row-body{padding:4px 14px 16px;border-top:1px solid var(--line);}
+.evento-row-body .datos-grid{margin-top:14px;}
 
 .filtro-input{
   width:100%;max-width:320px;padding:9px 12px;border:1px solid var(--line);border-radius:4px;
@@ -1431,35 +1446,41 @@ function cierreItemHtml(ev){
   const fin = new Date(ev.hora_fin);
   const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
   const yaCalculado = ev.estado_devolucion === 'pendiente' || ev.estado_devolucion === 'no_corresponde';
+  const faltaPagarSalon = ev.pago_salon_confirmado !== 'SI';
 
   return `
-    <div class="card">
-      <div class="card-top">
-        <div><div class="card-title">${ev.nombre_solicitante}</div>
-        <div class="card-sub">${fechaTxt} · ${horaTxt}</div></div>
+    <details class="evento-row">
+      <summary>
+        <span class="evento-row-nombre">${ev.nombre_solicitante}</span>
+        <span class="evento-row-fecha">${fechaTxt}</span>
+        ${faltaPagarSalon ? `<span class="tag pendiente">Falta pagar salón</span>` : ''}
         <span class="tag ${ev.estado_devolucion === 'pendiente' ? 'pendiente' : (ev.estado_devolucion === 'no_corresponde' ? 'aprobado' : '')}">
           ${ev.estado_devolucion === 'sin_procesar' ? 'Falta cargar gastos' : (ev.estado_devolucion === 'pendiente' ? 'Devolución pendiente' : 'Sin devolución')}
         </span>
-      </div>
-      <div class="datos-grid">
-        <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
-        <div><span>Pago del salón</span><strong style="${ev.pago_salon_confirmado === 'SI' ? '' : 'color:#b23b3b;'}">${ev.pago_salon_confirmado === 'SI' ? 'Ya lo pagó ✓' : 'Todavía le falta pagar'}</strong></div>
-      </div>
-      <div class="cierre-input-wrap">
-        <div>
-          <label>Consumo / roturas ($)</label>
-          <input type="number" min="0" class="input-consumo" data-id="${ev.id_reserva}" value="${ev.monto_consumido || ''}" placeholder="0">
+        <span class="evento-row-flecha">▾</span>
+      </summary>
+      <div class="evento-row-body">
+        <div class="card-sub" style="margin-bottom:4px;">${horaTxt}</div>
+        <div class="datos-grid">
+          <div><span>Seña recibida</span><strong>${formatoPesos(ev.monto_sena)}</strong></div>
+          <div><span>Pago del salón</span><strong style="${faltaPagarSalon ? 'color:#b23b3b;' : ''}">${faltaPagarSalon ? 'Todavía le falta pagar' : 'Ya lo pagó ✓'}</strong></div>
         </div>
-        <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
+        <div class="cierre-input-wrap">
+          <div>
+            <label>Consumo / roturas ($)</label>
+            <input type="number" min="0" class="input-consumo" data-id="${ev.id_reserva}" value="${ev.monto_consumido || ''}" placeholder="0">
+          </div>
+          <button class="btn-secundario btn-calcular" data-id="${ev.id_reserva}">Calcular y guardar</button>
+        </div>
+        ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
+        <div class="card-acciones">
+          ${ev.estado_devolucion === 'pendiente'
+            ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
+            : ''}
+          <button class="btn-detalle" data-id="${ev.id_reserva}">Ver detalle y notas</button>
+        </div>
       </div>
-      ${yaCalculado ? `<div class="resultado-devolucion">A devolver: <strong>${formatoPesos(ev.sena_a_devolver)}</strong></div>` : ''}
-      <div class="card-acciones">
-        ${ev.estado_devolucion === 'pendiente'
-          ? `<button class="btn-aprobar btn-confirmar-devolucion" data-id="${ev.id_reserva}">Confirmar que ya devolví el dinero</button>`
-          : ''}
-        <button class="btn-detalle" data-id="${ev.id_reserva}">Ver detalle y notas</button>
-      </div>
-    </div>`;
+    </details>`;
 }
 
 function renderCierre(lista){
@@ -1597,26 +1618,29 @@ function pagoSalonItemHtml(r){
   const esDescuentoSueldo = r.forma_pago_sena === 'descuento_sueldo';
   const formaPagoTxt = esDescuentoSueldo ? 'Descuento de sueldo' : 'Transferencia';
   return `
-    <div class="card">
-      <div class="card-top">
-        <div><div class="card-title">${r.nombre_solicitante}</div>
-        <div class="card-sub">${fechaTxt}</div></div>
+    <details class="evento-row">
+      <summary>
+        <span class="evento-row-nombre">${r.nombre_solicitante}</span>
+        <span class="evento-row-fecha">${fechaTxt}</span>
         <span class="tag" style="background:${esDescuentoSueldo ? 'rgba(201,162,39,.18)' : 'rgba(47,158,92,.15)'};color:${esDescuentoSueldo ? '#a4801f' : '#1f7a45'};">
           ${esDescuentoSueldo ? '💰 ' : '🏦 '}${formaPagoTxt}
         </span>
+        <span class="evento-row-flecha">▾</span>
+      </summary>
+      <div class="evento-row-body">
+        ${esDescuentoSueldo ? `<div style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:4px;padding:8px 12px;margin:14px 0 0;font-size:12.5px;color:#a4801f;">⚠️ Recordá enviarlo a Retenciones</div>` : ''}
+        <div class="datos-grid">
+          <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+          ${r.link_comprobante_pago_salon
+            ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>`
+            : `<div><span>Comprobante</span><strong style="color:var(--ink-soft);font-weight:500;">Todavía no lo subió</strong></div>`}
+        </div>
+        <div class="card-acciones">
+          <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
+          <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
+        </div>
       </div>
-      ${esDescuentoSueldo ? `<div style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:4px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#a4801f;">⚠️ Recordá enviarlo a Retenciones</div>` : ''}
-      <div class="datos-grid">
-        <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
-        ${r.link_comprobante_pago_salon
-          ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>`
-          : `<div><span>Comprobante</span><strong style="color:var(--ink-soft);font-weight:500;">Todavía no lo subió</strong></div>`}
-      </div>
-      <div class="card-acciones">
-        <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
-        <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
-      </div>
-    </div>`;
+    </details>`;
 }
 
 function renderPagoSalon(lista){
