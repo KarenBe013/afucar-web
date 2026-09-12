@@ -1550,9 +1550,16 @@ function diaTieneAlgunaFranjaLibre(fecha){
   });
 }
 
+let calendarioRenderId = 0;
+
 async function generarCalendario(){
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
+  // Al iniciar sesión esta función se puede disparar más de una vez casi en simultáneo
+  // (carga inicial de la página + sesión guardada + confirmación del servidor). Como es
+  // asíncrona, esas llamadas podían pisarse entre sí y terminaban agregando las celdas
+  // del calendario duplicadas. Con este id nos aseguramos de que solo la llamada más
+  // reciente termine dibujando el calendario.
+  const miRenderId = ++calendarioRenderId;
+
   document.getElementById('slotsPanel').style.display = 'none';
   document.getElementById('reservaPanel').style.display = 'none';
   diaSeleccionado = null;
@@ -1561,6 +1568,10 @@ async function generarCalendario(){
   document.getElementById('mesActual').textContent = `${meses[mesActual.getMonth()]} ${mesActual.getFullYear()}`;
 
   await obtenerEventosDelMes();
+  if(miRenderId !== calendarioRenderId) return; // se disparó una llamada más nueva mientras esperábamos, descartamos esta
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
 
   const primerDia = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
   const ultimoDia = new Date(mesActual.getFullYear(), mesActual.getMonth()+1, 0);
