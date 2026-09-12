@@ -1437,7 +1437,7 @@ function renderDirectiva(lista){
   }
   cont.innerHTML = lista.map(p => `
     <div class="card-persona">
-      ${p.foto_url ? `<img src="${p.foto_url}" class="photo" style="object-fit:cover;" alt="${p.nombre}">` : `<div class="photo">Foto</div>`}
+      ${p.foto_url ? `<img src="${p.foto_url}" class="photo" style="object-fit:cover;object-position:50% ${p.foto_posicion != null ? p.foto_posicion : 50}%;" alt="${p.nombre}">` : `<div class="photo">Foto</div>`}
       <div class="info"><div class="nombre">${p.nombre}</div><div class="cargo">${p.cargo}</div></div>
     </div>
   `).join('');
