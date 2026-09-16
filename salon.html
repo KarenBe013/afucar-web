@@ -1422,6 +1422,14 @@ const elHoras = document.getElementById('horas');
   actualizarSimulador();
 }));
 
+// La cantidad de horas cambia qué días/horarios de inicio están disponibles en el
+// salón de talleres, así que hay que refrescar el calendario y, si ya había un día
+// elegido, la lista de horarios de inicio para esa nueva duración.
+elHoras.addEventListener('change', () => {
+  if(!usuarioLogueado || tipoEspacio !== 'talleres') return;
+  generarCalendario();
+});
+
 function actualizarSimulador(){
   let alquiler = 0, sena = 0, nota = '', frase = '';
 
@@ -1522,19 +1530,30 @@ function rangoFranjaEventos(fecha, idx){
   };
 }
 
-const BLOQUES_TALLER = [
-  { texto:'09 a 11 hs', hi:9,  hf:11 },
-  { texto:'11 a 13 hs', hi:11, hf:13 },
-  { texto:'14 a 16 hs', hi:14, hf:16 },
-  { texto:'16 a 18 hs', hi:16, hf:18 },
-  { texto:'18 a 20 hs', hi:18, hf:20 }
+// El salón de talleres abre 9 a 13hs y 14 a 20hs (con el corte del mediodía en el medio).
+// En vez de bloques fijos, la persona elige cuántas horas necesita y le mostramos todos
+// los horarios de inicio posibles para esa duración, sin cruzar el corte ni pasarse del cierre.
+const VENTANAS_TALLER = [
+  { inicio: 9, fin: 13 },
+  { inicio: 14, fin: 20 }
 ];
 
-function rangoBloqueTaller(fecha, bloque){
-  return {
-    inicio: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), bloque.hi, 0),
-    fin:    new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), bloque.hf, 0)
-  };
+function duracionTallerElegida(){
+  return Math.max(1, Number(elHoras.value) || 1);
+}
+
+function horasInicioPosiblesTaller(fecha, duracion){
+  const posibles = [];
+  VENTANAS_TALLER.forEach(v => {
+    for(let h = v.inicio; h + duracion <= v.fin; h++){
+      posibles.push(new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), h, 0));
+    }
+  });
+  return posibles;
+}
+
+function rangoInicioFinTaller(inicio, duracion){
+  return { inicio, fin: new Date(inicio.getTime() + duracion * 60 * 60 * 1000) };
 }
 
 function diaTieneAlgunaFranjaLibre(fecha){
@@ -1544,8 +1563,9 @@ function diaTieneAlgunaFranjaLibre(fecha){
       return !franjaOcupada(r.inicio, r.fin);
     });
   }
-  return BLOQUES_TALLER.some(b => {
-    const r = rangoBloqueTaller(fecha, b);
+  const duracion = duracionTallerElegida();
+  return horasInicioPosiblesTaller(fecha, duracion).some(inicio => {
+    const r = rangoInicioFinTaller(inicio, duracion);
     return !franjaOcupada(r.inicio, r.fin);
   });
 }
@@ -1633,17 +1653,26 @@ function mostrarSlots(fecha){
       gridSlots.appendChild(slot);
     });
   } else {
-    BLOQUES_TALLER.forEach(b => {
-      const r = rangoBloqueTaller(fecha, b);
-      const libre = !franjaOcupada(r.inicio, r.fin);
-      const slot = document.createElement('div');
-      slot.className = 'slot ' + (libre ? 'free' : 'busy');
-      slot.textContent = b.texto + (libre ? '' : ' — ocupado');
-      if(libre){
-        slot.addEventListener('click', () => seleccionarSlot(slot, b.texto, {bloque: b, rango: r}));
-      }
-      gridSlots.appendChild(slot);
-    });
+    const duracion = duracionTallerElegida();
+    const posibles = horasInicioPosiblesTaller(fecha, duracion);
+    if(posibles.length === 0){
+      gridSlots.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;grid-column:1/-1;">No hay ningún horario de inicio que alcance para esa cantidad de horas dentro del horario del salón (9 a 13 hs y 14 a 20 hs). Probá con menos horas.</p>';
+    } else {
+      posibles.forEach(inicio => {
+        const r = rangoInicioFinTaller(inicio, duracion);
+        const libre = !franjaOcupada(r.inicio, r.fin);
+        const horaIni = inicio.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+        const horaFin = r.fin.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+        const texto = `${horaIni} a ${horaFin}`;
+        const slot = document.createElement('div');
+        slot.className = 'slot ' + (libre ? 'free' : 'busy');
+        slot.textContent = texto + (libre ? '' : ' — ocupado');
+        if(libre){
+          slot.addEventListener('click', () => seleccionarSlot(slot, texto, {rango: r, horas: duracion}));
+        }
+        gridSlots.appendChild(slot);
+      });
+    }
   }
 
   panel.style.display = 'block';
@@ -1829,6 +1858,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
     } else {
       body.hora_inicio = slotInfoSeleccionado.rango.inicio.toISOString();
       body.hora_fin = slotInfoSeleccionado.rango.fin.toISOString();
+      body.horas = slotInfoSeleccionado.horas;
     }
 
     fetch(URL_BACKEND, { method: 'POST', body: JSON.stringify(body) })
