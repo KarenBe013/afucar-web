@@ -546,6 +546,13 @@
   .slot.busy{color:#b7bcc5;cursor:not-allowed;background:var(--paper);}
   .slot.selected{background:var(--gold);border-color:var(--gold);color:var(--navy-deep);}
 
+  .taller-libre-texto{font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px 14px;margin-bottom:16px;}
+  .taller-horario-form{display:flex;gap:16px;flex-wrap:wrap;}
+  .taller-horario-form>div{flex:1;min-width:160px;}
+  .taller-horario-mensaje{font-size:13px;margin-top:12px;padding:10px 12px;border-radius:4px;display:none;}
+  .taller-horario-mensaje.ok{display:block;background:rgba(47,158,92,.1);color:#1f7a45;border:1px solid rgba(47,158,92,.3);}
+  .taller-horario-mensaje.error{display:block;background:rgba(181,68,46,.08);color:#b5442e;border:1px solid rgba(181,68,46,.25);}
+
   .reserva-panel{margin-top:24px;border-top:1px solid var(--line);padding-top:22px;}
   .reserva-panel h4{font-size:15px;color:var(--navy-deep);margin-bottom:10px;font-weight:600;}
   .btn-primary-block{
@@ -962,6 +969,21 @@
       <div id="slotsPanel" class="slots-panel" style="display:none;">
         <h4 id="slotsTitulo">Horarios disponibles</h4>
         <div class="slots-grid" id="slotsGrid"></div>
+
+        <div id="tallerHorarioPanel" style="display:none;">
+          <p id="tallerLibreTexto" class="taller-libre-texto"></p>
+          <div class="taller-horario-form">
+            <div>
+              <label class="sim-label" for="tallerHoras">Cantidad de horas</label>
+              <input type="number" id="tallerHoras" class="sim-select" min="1" value="2">
+            </div>
+            <div>
+              <label class="sim-label" for="tallerHoraInicio">Hora de inicio</label>
+              <input type="time" id="tallerHoraInicio" class="sim-select" step="900">
+            </div>
+          </div>
+          <p id="tallerHorarioMensaje" class="taller-horario-mensaje"></p>
+        </div>
       </div>
 
       <div id="reservaPanel" class="reserva-panel" style="display:none;">
@@ -1422,14 +1444,6 @@ const elHoras = document.getElementById('horas');
   actualizarSimulador();
 }));
 
-// La cantidad de horas cambia qué días/horarios de inicio están disponibles en el
-// salón de talleres, así que hay que refrescar el calendario y, si ya había un día
-// elegido, la lista de horarios de inicio para esa nueva duración.
-elHoras.addEventListener('change', () => {
-  if(!usuarioLogueado || tipoEspacio !== 'talleres') return;
-  generarCalendario();
-});
-
 function actualizarSimulador(){
   let alquiler = 0, sena = 0, nota = '', frase = '';
 
@@ -1530,30 +1544,36 @@ function rangoFranjaEventos(fecha, idx){
   };
 }
 
-// El salón de talleres abre 9 a 13hs y 14 a 20hs (con el corte del mediodía en el medio).
-// En vez de bloques fijos, la persona elige cuántas horas necesita y le mostramos todos
-// los horarios de inicio posibles para esa duración, sin cruzar el corte ni pasarse del cierre.
-const VENTANAS_TALLER = [
-  { inicio: 9, fin: 13 },
-  { inicio: 14, fin: 20 }
-];
-
-function duracionTallerElegida(){
-  return Math.max(1, Number(elHoras.value) || 1);
+// El salón de talleres abre de 8:00 a 24:00hs, todos los días, sin cortes.
+// La persona elige el día, ve el horario libre que queda ese día, elige cuántas
+// horas necesita y recién ahí puede escribir a qué hora empieza; validamos en el
+// momento si se superpone con otra reserva y le avisamos con qué horario choca.
+function aperturaTaller(fecha){
+  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 8, 0);
+}
+function cierreTaller(fecha){
+  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 0, 0); // 24:00 = medianoche del día siguiente
+}
+function horaTexto(d, cierre){
+  return (cierre && d.getTime() === cierre.getTime()) ? '24:00' : d.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
 }
 
-function horasInicioPosiblesTaller(fecha, duracion){
-  const posibles = [];
-  VENTANAS_TALLER.forEach(v => {
-    for(let h = v.inicio; h + duracion <= v.fin; h++){
-      posibles.push(new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), h, 0));
-    }
+// Huecos libres del día dentro de [8:00, 24:00), a partir de los eventos ya reservados ese día.
+function franjasLibresDelDiaTaller(fecha){
+  const apertura = aperturaTaller(fecha);
+  const cierre = cierreTaller(fecha);
+  const ocupados = eventosMesActual
+    .filter(ev => haySuperposicion(ev.inicio, ev.fin, apertura, cierre))
+    .sort((a, b) => a.inicio - b.inicio);
+
+  const libres = [];
+  let cursor = apertura;
+  ocupados.forEach(ev => {
+    if(ev.inicio > cursor) libres.push({ inicio: new Date(cursor), fin: new Date(ev.inicio) });
+    if(ev.fin > cursor) cursor = ev.fin;
   });
-  return posibles;
-}
-
-function rangoInicioFinTaller(inicio, duracion){
-  return { inicio, fin: new Date(inicio.getTime() + duracion * 60 * 60 * 1000) };
+  if(cursor < cierre) libres.push({ inicio: new Date(cursor), fin: new Date(cierre) });
+  return libres;
 }
 
 function diaTieneAlgunaFranjaLibre(fecha){
@@ -1563,11 +1583,7 @@ function diaTieneAlgunaFranjaLibre(fecha){
       return !franjaOcupada(r.inicio, r.fin);
     });
   }
-  const duracion = duracionTallerElegida();
-  return horasInicioPosiblesTaller(fecha, duracion).some(inicio => {
-    const r = rangoInicioFinTaller(inicio, duracion);
-    return !franjaOcupada(r.inicio, r.fin);
-  });
+  return franjasLibresDelDiaTaller(fecha).length > 0;
 }
 
 let calendarioRenderId = 0;
@@ -1631,15 +1647,21 @@ function seleccionarDia(fecha, celda){
   mostrarSlots(fecha);
 }
 
+let franjasLibresTallerActual = [];
+let cierreTallerActual = null;
+
 function mostrarSlots(fecha){
   const panel = document.getElementById('slotsPanel');
   const gridSlots = document.getElementById('slotsGrid');
+  const panelTaller = document.getElementById('tallerHorarioPanel');
   const fechaTxt = fecha.toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long'});
   document.getElementById('slotsTitulo').textContent = `Horarios disponibles · ${fechaTxt}`;
   gridSlots.innerHTML = '';
   document.getElementById('reservaPanel').style.display = 'none';
 
   if(tipoEspacio === 'eventos'){
+    panelTaller.style.display = 'none';
+    gridSlots.style.display = 'grid';
     franjasValidasDelDia(fecha).forEach(idx => {
       const r = rangoFranjaEventos(fecha, idx);
       const libre = !franjaOcupada(r.inicio, r.fin);
@@ -1653,30 +1675,81 @@ function mostrarSlots(fecha){
       gridSlots.appendChild(slot);
     });
   } else {
-    const duracion = duracionTallerElegida();
-    const posibles = horasInicioPosiblesTaller(fecha, duracion);
-    if(posibles.length === 0){
-      gridSlots.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;grid-column:1/-1;">No hay ningún horario de inicio que alcance para esa cantidad de horas dentro del horario del salón (9 a 13 hs y 14 a 20 hs). Probá con menos horas.</p>';
+    gridSlots.style.display = 'none';
+    panelTaller.style.display = 'block';
+
+    cierreTallerActual = cierreTaller(fecha);
+    franjasLibresTallerActual = franjasLibresDelDiaTaller(fecha);
+
+    document.getElementById('tallerLibreTexto').textContent = franjasLibresTallerActual.length === 0
+      ? 'No queda ningún horario libre este día. Elegí otra fecha.'
+      : 'Horario libre este día: ' + franjasLibresTallerActual
+          .map(f => `${horaTexto(f.inicio)} a ${horaTexto(f.fin, cierreTallerActual)}`)
+          .join(' y ') + '.';
+
+    document.getElementById('tallerHoras').value = elHoras.value; // arranca con el mismo valor del presupuesto, después se puede ajustar
+    document.getElementById('tallerHoraInicio').value = '';
+    const msgEl = document.getElementById('tallerHorarioMensaje');
+
+    const deshabilitar = !usuarioLogueado || franjasLibresTallerActual.length === 0;
+    document.getElementById('tallerHoras').disabled = deshabilitar;
+    document.getElementById('tallerHoraInicio').disabled = deshabilitar;
+
+    if(!usuarioLogueado && franjasLibresTallerActual.length > 0){
+      msgEl.className = 'taller-horario-mensaje error';
+      msgEl.textContent = 'Iniciá sesión con tu cuenta de Google para elegir horario y reservar.';
     } else {
-      posibles.forEach(inicio => {
-        const r = rangoInicioFinTaller(inicio, duracion);
-        const libre = !franjaOcupada(r.inicio, r.fin);
-        const horaIni = inicio.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
-        const horaFin = r.fin.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
-        const texto = `${horaIni} a ${horaFin}`;
-        const slot = document.createElement('div');
-        slot.className = 'slot ' + (libre ? 'free' : 'busy');
-        slot.textContent = texto + (libre ? '' : ' — ocupado');
-        if(libre){
-          slot.addEventListener('click', () => seleccionarSlot(slot, texto, {rango: r, horas: duracion}));
-        }
-        gridSlots.appendChild(slot);
-      });
+      msgEl.className = 'taller-horario-mensaje';
+      msgEl.textContent = '';
     }
   }
 
   panel.style.display = 'block';
 }
+
+function validarHorarioTaller(){
+  const msgEl = document.getElementById('tallerHorarioMensaje');
+  document.getElementById('reservaPanel').style.display = 'none';
+  slotSeleccionado = null;
+  slotInfoSeleccionado = null;
+
+  if(!diaSeleccionado) return;
+
+  const horaInicioStr = document.getElementById('tallerHoraInicio').value; // "HH:MM"
+  if(!horaInicioStr){
+    msgEl.className = 'taller-horario-mensaje';
+    msgEl.textContent = '';
+    return;
+  }
+
+  const horas = Math.max(1, Number(document.getElementById('tallerHoras').value) || 1);
+  const [hh, mm] = horaInicioStr.split(':').map(Number);
+  const inicio = new Date(diaSeleccionado.getFullYear(), diaSeleccionado.getMonth(), diaSeleccionado.getDate(), hh, mm);
+  const fin = new Date(inicio.getTime() + horas * 60 * 60 * 1000);
+  const apertura = aperturaTaller(diaSeleccionado);
+
+  if(inicio < apertura || fin > cierreTallerActual){
+    msgEl.className = 'taller-horario-mensaje error';
+    msgEl.textContent = 'El salón de talleres abre de 08:00 a 24:00 hs. Con esa hora de inicio y esa cantidad de horas te pasás del horario — probá empezar más temprano o reservar menos horas.';
+    return;
+  }
+
+  const conflicto = eventosMesActual.find(ev => haySuperposicion(inicio, fin, ev.inicio, ev.fin));
+  if(conflicto){
+    msgEl.className = 'taller-horario-mensaje error';
+    msgEl.textContent = `De ${horaTexto(conflicto.inicio)} a ${horaTexto(conflicto.fin, cierreTallerActual)} ya está reservado. Elegí otro horario.`;
+    return;
+  }
+
+  msgEl.className = 'taller-horario-mensaje ok';
+  msgEl.textContent = `✓ Horario disponible: de ${horaTexto(inicio)} a ${horaTexto(fin, cierreTallerActual)}`;
+
+  const texto = `${horaTexto(inicio)} a ${horaTexto(fin, cierreTallerActual)}`;
+  confirmarSeleccionSlot(texto, {rango: {inicio, fin}, horas});
+}
+
+document.getElementById('tallerHoras').addEventListener('input', validarHorarioTaller);
+document.getElementById('tallerHoraInicio').addEventListener('input', validarHorarioTaller);
 
 let slotInfoSeleccionado = null;
 
@@ -1688,6 +1761,12 @@ function seleccionarSlot(slotEl, texto, info){
 
   document.querySelectorAll('.slot.selected').forEach(s => s.classList.remove('selected'));
   slotEl.classList.add('selected');
+  confirmarSeleccionSlot(texto, info);
+}
+
+function confirmarSeleccionSlot(texto, info){
+  if(!usuarioLogueado) return; // defensivo: en el flujo de talleres los campos ya están deshabilitados sin sesión
+
   slotSeleccionado = texto;
   slotInfoSeleccionado = info;
 
