@@ -1375,6 +1375,14 @@ function inicializarSelectMeses(){
 document.getElementById('btnCargarCalendario').addEventListener('click', cargarCalendarioYListado);
 document.getElementById('btnImprimirListado').addEventListener('click', () => window.print());
 
+// Antes había que cambiar el mes/año/tipo de espacio Y encima acordarse de apretar
+// "Cargar mes" para que se actualizara; si no, la pantalla se quedaba mostrando el
+// mes que ya estaba cargado (por eso siempre parecía que solo existían eventos del
+// mes actual). Ahora cambiar cualquiera de los tres recarga solo.
+document.getElementById('calTipoEspacio').addEventListener('change', cargarCalendarioYListado);
+document.getElementById('calMes').addEventListener('change', cargarCalendarioYListado);
+document.getElementById('calAnio').addEventListener('change', cargarCalendarioYListado);
+
 let reservasDelMesActual = [];
 
 function cargarCalendarioYListado(){
