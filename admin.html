@@ -332,6 +332,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelDirectiva">Directiva</button>
       <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
       <button class="tab-btn" data-panel="panelPagoSalon">Pagos del salón <span class="badge" id="badgePagoSalon">0</span></button>
+      <button class="tab-btn" data-panel="panelReservasTalleres">Reservas de talleres <span class="badge" id="badgeReservasTalleres">0</span></button>
     </div>
 
     <!-- SOLICITUDES -->
@@ -550,6 +551,15 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <div id="listaPagoSalon" class="cargando">Cargando...</div>
     </div>
 
+    <!-- RESERVAS DE TALLERES (seguimiento post-aprobación) -->
+    <div id="panelReservasTalleres" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Reservas del salón de talleres ya aprobadas (se pagan completas al reservar, así que acá quedan para
+        consulta y seguimiento). Podés modificarlas, cancelarlas o dejar notas desde "Ver detalle y notas".
+      </p>
+      <div id="listaReservasTalleres" class="cargando">Cargando...</div>
+    </div>
+
   </div>
 
 </div>
@@ -636,6 +646,7 @@ function procesarLoginAdmin(email, token){
   cargarTickets();
   cargarCierre();
   cargarPagoSalon();
+  cargarReservasTalleres();
   cargarMediaAdmin();
   cargarDirectivaAdmin();
   inicializarSelectMeses();
@@ -887,6 +898,7 @@ function refrescarListasReservas_(){
   cargarReservasPendientes();
   cargarCierre();
   cargarPagoSalon();
+  cargarReservasTalleres();
   cargarCalendarioYListado();
 }
 
@@ -1013,7 +1025,7 @@ function renderReservas(lista){
         accion:'actualizarEstadoReserva', emailAdmin, idReserva: btn.dataset.id, nuevoEstado: btn.dataset.accion
       })})
       .then(res => res.json())
-      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarReservasPendientes(); })
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} refrescarListasReservas_(); })
       .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
@@ -1789,6 +1801,48 @@ function renderPagoSalon(lista){
       .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
+}
+
+/* ============ Reservas de talleres (seguimiento post-aprobación) ============ */
+function cargarReservasTalleres(){
+  fetch(`${URL_BACKEND}?accion=obtenerReservasTalleresAprobadas&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderReservasTalleres(data.reservas || []); })
+    .catch(err => console.error(err));
+}
+
+function reservaTallerItemHtml(r){
+  const inicio = new Date(r.hora_inicio);
+  const fin = new Date(r.hora_fin);
+  const fechaTxt = inicio.toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+  return `
+    <details class="evento-row">
+      <summary>
+        <span class="evento-row-nombre">${r.nombre_solicitante}</span>
+        <span class="evento-row-fecha">${fechaTxt}</span>
+        <span class="evento-row-flecha">▾</span>
+      </summary>
+      <div class="evento-row-body">
+        <div class="card-sub" style="margin-bottom:4px;">${horaTxt}</div>
+        <div class="datos-grid">
+          <div><span>Precio</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
+          ${r.link_comprobante_sena
+            ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>`
+            : ''}
+        </div>
+        <div class="card-acciones">
+          <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
+        </div>
+      </div>
+    </details>`;
+}
+
+function renderReservasTalleres(lista){
+  document.getElementById('badgeReservasTalleres').textContent = lista.length;
+  const cont = document.getElementById('listaReservasTalleres');
+  renderAgrupadoPorMes_(cont, lista, r => new Date(r.fecha), reservaTallerItemHtml, 'No hay reservas de talleres aprobadas todavía.');
+  wireBotonesDetalle_(cont);
 }
 
 /* ============ Fotos y videos del salón ============ */
