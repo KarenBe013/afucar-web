@@ -747,7 +747,13 @@ function renderModalDetalle_(r, notas){
       <div><span>A devolver</span><strong>${formatoPesos(r.sena_a_devolver)}</strong></div>
       <div><span>Estado</span><strong>${ESTADOS_DEVOLUCION[r.estado_devolucion] || r.estado_devolucion}</strong></div>
       ${r.fecha_devolucion ? `<div><span>Fecha de devolución</span><strong>${new Date(r.fecha_devolucion).toLocaleDateString('es-UY')}</strong></div>` : ''}
-    </div>` : ''}
+    </div>` : `
+    <div class="modal-seccion-titulo">Pago del taller</div>
+    <div class="datos-grid">
+      <div><span>Monto pagado</span><strong>${formatoPesos(r.monto_sena)}</strong></div>
+      <div><span>Forma de pago</span><strong>Transferencia (importe completo)</strong></div>
+      ${r.link_comprobante_sena ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
+    </div>`}
 
     ${puedeModificar ? `
     <div class="modal-seccion-titulo">Acciones</div>
@@ -986,7 +992,7 @@ function renderReservas(lista){
       <div class="datos-grid">
         ${r.capacidad_personas ? `<div><span>Capacidad</span><strong>${r.capacidad_personas} personas</strong></div>` : ''}
         <div><span>Precio alquiler</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
-        ${r.monto_sena ? `<div><span>Seña</span><strong>${formatoPesos(r.monto_sena)}</strong></div>` : ''}
+        ${r.monto_sena ? `<div><span>${r.tipo_espacio === 'eventos' ? 'Seña' : 'Monto pagado'}</span><strong>${formatoPesos(r.monto_sena)}</strong></div>` : ''}
         ${r.tipo_espacio === 'eventos' ? `<div><span>Forma de pago</span><strong>${formaPagoTxt}</strong></div>` : ''}
         ${r.link_comprobante_sena ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
         ${r.es_tercero === 'SI' ? `<div><span>Para un tercero</span><strong>${r.tercero_nombre} ${r.tercero_apellido} · ${r.tercero_telefono}</strong></div>` : ''}

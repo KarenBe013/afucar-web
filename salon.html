@@ -1016,7 +1016,7 @@
         </div>
 
         <div id="bloqueComprobanteSena" style="display:none;">
-          <label class="sim-label" style="margin-top:16px;">Comprobante de pago de la seña</label>
+          <label class="sim-label" style="margin-top:16px;" id="labelComprobanteSena">Comprobante de pago de la seña</label>
           <input type="file" id="comprobanteSena" class="sim-select" accept="image/*,.pdf">
         </div>
 
@@ -1788,7 +1788,13 @@ function confirmarSeleccionSlot(texto, info){
 
   document.getElementById('bloqueFormaPago').style.display = esSocio ? 'block' : 'none';
   document.querySelector('input[name="formaPagoSena"][value="transferencia"]').checked = true;
-  document.getElementById('bloqueComprobanteSena').style.display = tipoEspacio === 'eventos' ? 'block' : 'none';
+
+  // El salón de talleres se paga por completo para poder reservar (no tiene seña
+  // parcial ni opción de descuento por sueldo), así que siempre pide comprobante.
+  document.getElementById('bloqueComprobanteSena').style.display = 'block';
+  document.getElementById('labelComprobanteSena').textContent = tipoEspacio === 'eventos'
+    ? 'Comprobante de pago de la seña'
+    : 'Comprobante de pago (se abona el alquiler completo para reservar)';
 
   if(tipoEspacio === 'eventos'){
     poblarCapacidadReserva();
@@ -1903,8 +1909,11 @@ document.getElementById('btnReservar').addEventListener('click', () => {
     ? (document.querySelector('input[name="formaPagoSena"]:checked')?.value || 'transferencia')
     : 'transferencia';
 
-  if(tipoEspacio === 'eventos' && formaPagoSena === 'transferencia' && (!archivoInput.files || archivoInput.files.length === 0)){
-    mostrarErrorReserva('Subí el comprobante de pago de la seña, o elegí "Descuento por sueldo" si sos socio.');
+  const requiereComprobante = tipoEspacio === 'talleres' || (tipoEspacio === 'eventos' && formaPagoSena === 'transferencia');
+  if(requiereComprobante && (!archivoInput.files || archivoInput.files.length === 0)){
+    mostrarErrorReserva(tipoEspacio === 'talleres'
+      ? 'Subí el comprobante de pago del alquiler completo para poder reservar el taller.'
+      : 'Subí el comprobante de pago de la seña, o elegí "Descuento por sueldo" si sos socio.');
     return;
   }
 
@@ -1972,7 +1981,7 @@ document.getElementById('btnReservar').addEventListener('click', () => {
       });
   }
 
-  if(tipoEspacio === 'eventos' && formaPagoSena === 'transferencia'){
+  if(requiereComprobante){
     const archivo = archivoInput.files[0];
     const lector = new FileReader();
     lector.onload = function(){
