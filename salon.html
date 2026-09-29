@@ -1367,6 +1367,12 @@ const SENA_PARTICULAR = 5000;
 const SENA_TERCERO = 4000;
 const DESCUENTO_TERCERO = 30; // % fijo, igual que Legislador/Secretario/Afucase/Afucoa
 
+/* 25 personas: además de socios, solo para estos convenios y para reservas a terceros.
+   Precio final (ya con descuento), en el mismo orden que FRANJAS:
+   L-J 10-16, V-D 10-16, L-J 19-01, V-D 19-01 */
+const CONVENIOS_CON_25 = ['legislador', 'secretario', 'afucase', 'afucoa'];
+const TARIFA_25_CONVENIO = [3850, 5100, 4900, 5500];
+
 /* Lista de instituciones con convenio — esto en el sistema real sale de la hoja "Convenios_Descuento",
    que vos vas a poder editar/ampliar desde el panel de administración sin tocar código. */
 const CONVENIOS_DESCUENTO = [
@@ -1405,7 +1411,9 @@ function calcularParaCategoria(capacidad, franjaIdx, categoria){
   }
   const inst = CONVENIOS_DESCUENTO.find(c => c.id === categoria);
   if(!inst) return null;
-  const precio = calcularPrecioConvenio(capacidad, franjaIdx, inst.porcentaje);
+  const precio = (capacidad === 25 && CONVENIOS_CON_25.includes(categoria))
+    ? TARIFA_25_CONVENIO[franjaIdx]
+    : calcularPrecioConvenio(capacidad, franjaIdx, inst.porcentaje);
   if(precio === null) return null;
   return { alquiler: precio, sena: inst.monto_sena };
 }
@@ -1480,7 +1488,7 @@ function mostrarSinDisponibilidadCapacidad(){
   document.getElementById('resAlquiler').textContent = '—';
   document.getElementById('resSena').textContent = '—';
   document.getElementById('resTotal').textContent = '—';
-  document.getElementById('resNota').textContent = 'Esta capacidad (25 personas) no está disponible para tu categoría. Elegí 50, 75 o 100 personas.';
+  document.getElementById('resNota').textContent = 'La capacidad de 25 personas está disponible solo para Socios, Legisladores, Secretarios, Afucase y Afucoa. Elegí 50, 75 o 100 personas.';
 }
 
 /* ============ Calendario (conectado a Google Calendar real) ============ */
@@ -1806,7 +1814,7 @@ function confirmarSeleccionSlot(texto, info){
 
 function poblarCapacidadReserva(){
   const esTerceroChecked = document.querySelector('input[name="paraQuien"]:checked')?.value === 'tercero';
-  const permite25 = categoriaUsuario === 'socio' && !esTerceroChecked;
+  const permite25 = esTerceroChecked || categoriaUsuario === 'socio' || CONVENIOS_CON_25.includes(categoriaUsuario);
   const opciones = permite25 ? [25, 50, 75, 100] : [50, 75, 100];
 
   const select = document.getElementById('capacidadReserva');
@@ -1830,7 +1838,9 @@ function recalcularPrecioReserva(){
 
   let precio, sena;
   if(esTercero){
-    precio = calcularPrecioConvenio(capacidad, franjaIdx, DESCUENTO_TERCERO);
+    precio = capacidad === 25
+      ? TARIFA_25_CONVENIO[franjaIdx]
+      : calcularPrecioConvenio(capacidad, franjaIdx, DESCUENTO_TERCERO);
     sena = SENA_TERCERO;
   } else {
     const resultado = calcularParaCategoria(capacidad, franjaIdx, categoriaUsuario);

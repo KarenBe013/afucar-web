@@ -1234,11 +1234,19 @@ function mostrarFormularioRegistro(email, nombreGoogle){
             <label>¿Cuál institución?</label>
             <select id="regInstitucion"></select>
           </div>
-          <div id="regBloqueComprobante" style="display:none;">
-            <div class="cuenta-field">
-              <label id="regLabelComprobante"></label>
-              <input type="file" id="regComprobante" accept="image/*,.pdf">
-            </div>
+        </div>
+        <div id="regBloqueFotoCi" style="display:none;">
+          <div class="cuenta-field">
+            <label>Foto de tu cédula de identidad</label>
+            <input type="file" id="regFotoCi" accept="image/*">
+            <small>Sacale una foto al frente de la cédula, que se lea bien. La usamos solo para verificar tu identidad.</small>
+          </div>
+        </div>
+        <div id="regBloqueComprobante" style="display:none;">
+          <div class="cuenta-field">
+            <label id="regLabelComprobante"></label>
+            <input type="file" id="regComprobante" accept="image/*,.pdf">
+            <small id="regAyudaComprobante"></small>
           </div>
         </div>
         <p id="regError" class="mensaje-cuenta" style="display:none;color:#e79587;"></p>
@@ -1263,8 +1271,10 @@ function mostrarFormularioRegistro(email, nombreGoogle){
   const elCategoria = document.getElementById('regCategoria');
   const bloqueSocio = document.getElementById('regBloqueSocio');
   const bloqueConvenio = document.getElementById('regBloqueConvenio');
+  const bloqueFotoCi = document.getElementById('regBloqueFotoCi');
   const bloqueComprobante = document.getElementById('regBloqueComprobante');
   const labelComprobante = document.getElementById('regLabelComprobante');
+  const ayudaComprobante = document.getElementById('regAyudaComprobante');
   const elInstitucion = document.getElementById('regInstitucion');
 
   elCategoria.addEventListener('change', () => {
@@ -1275,10 +1285,13 @@ function mostrarFormularioRegistro(email, nombreGoogle){
   elInstitucion.addEventListener('change', actualizarBloqueComprobanteReg);
 
   function actualizarBloqueComprobanteReg(){
-    const inst = categoriasDescuento.find(c => c.id === elInstitucion.value);
-    if(inst && inst.requiere_comprobante === 'SI'){
+    const categoria = elCategoria.value;
+    bloqueFotoCi.style.display = categoria === 'particular' ? 'none' : 'block';
+    const doc = categoria === 'convenio' ? documentoExtraConvenio(elInstitucion.value) : null;
+    if(doc){
       bloqueComprobante.style.display = 'block';
-      labelComprobante.textContent = `Subí: ${inst.tipo_comprobante}`;
+      labelComprobante.textContent = doc.label;
+      ayudaComprobante.textContent = doc.ayuda;
     } else {
       bloqueComprobante.style.display = 'none';
     }
@@ -1287,11 +1300,13 @@ function mostrarFormularioRegistro(email, nombreGoogle){
   document.getElementById('formRegistro').addEventListener('submit', function(e){
     e.preventDefault();
     const categoria = elCategoria.value;
-    const inst = categoria === 'convenio' ? categoriasDescuento.find(c => c.id === elInstitucion.value) : null;
-    const requiereComprobante = inst && inst.requiere_comprobante === 'SI';
+    const docExtra = categoria === 'convenio' ? documentoExtraConvenio(elInstitucion.value) : null;
+    const pideFotoCi = categoria !== 'particular';
+    const fotoCiInput = document.getElementById('regFotoCi');
     const archivoInput = document.getElementById('regComprobante');
     const numeroSocio = document.getElementById('regNumeroSocio').value.trim();
     const errorEl = document.getElementById('regError');
+    const btnSubmit = this.querySelector('button[type="submit"]');
     errorEl.style.display = 'none';
 
     if(categoria === 'socio' && !numeroSocio){
@@ -1300,13 +1315,25 @@ function mostrarFormularioRegistro(email, nombreGoogle){
       return;
     }
 
-    if(requiereComprobante && (!archivoInput.files || archivoInput.files.length === 0)){
-      errorEl.textContent = 'Para esta institución es obligatorio subir el comprobante indicado.';
+    if(categoria === 'convenio' && !elInstitucion.value){
+      errorEl.textContent = 'Elegí tu institución para continuar.';
       errorEl.style.display = 'block';
       return;
     }
 
-    function enviarRegistro(comprobanteData){
+    if(pideFotoCi && (!fotoCiInput.files || fotoCiInput.files.length === 0)){
+      errorEl.textContent = 'Subí una foto de tu cédula de identidad para continuar.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    if(docExtra && (!archivoInput.files || archivoInput.files.length === 0)){
+      errorEl.textContent = `Falta subir: ${docExtra.label.toLowerCase()}.`;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    function enviarRegistro(fotoCiData, comprobanteData){
       const body = {
         accion: 'registrarUsuario',
         email: email,
@@ -1317,7 +1344,10 @@ function mostrarFormularioRegistro(email, nombreGoogle){
         categoria_solicitada: categoria,
         numero_socio: categoria === 'socio' ? numeroSocio : '',
         id_convenio: categoria === 'convenio' ? elInstitucion.value : '',
-        comprobante: comprobanteData
+        foto_ci: fotoCiData,
+        // Si no hay documento extra (socio, legislador) mandamos la cédula también como
+        // comprobante, así queda guardada aunque el servidor todavía no conozca "foto_ci".
+        comprobante: comprobanteData || fotoCiData
       };
       fetch(URL_BACKEND, { method: 'POST', body: JSON.stringify(body) })
         .then(res => res.json())
@@ -1325,6 +1355,8 @@ function mostrarFormularioRegistro(email, nombreGoogle){
           if(resp.error){
             errorEl.textContent = resp.error;
             errorEl.style.display = 'block';
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Registrarme';
             return;
           }
           procesarLoginReal(email, '');
@@ -1332,21 +1364,71 @@ function mostrarFormularioRegistro(email, nombreGoogle){
         .catch(err => {
           errorEl.textContent = 'Error al registrar. Probá de nuevo.';
           errorEl.style.display = 'block';
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Registrarme';
           console.error(err);
         });
     }
 
-    if(requiereComprobante){
-      const archivo = archivoInput.files[0];
-      const lector = new FileReader();
-      lector.onload = function(){
-        const base64 = lector.result.split(',')[1];
-        enviarRegistro({ base64, nombreArchivo: archivo.name, mimeType: archivo.type });
-      };
-      lector.readAsDataURL(archivo);
-    } else {
-      enviarRegistro(null);
-    }
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Subiendo archivos...';
+    Promise.all([
+      pideFotoCi ? prepararArchivoParaEnvio(fotoCiInput.files[0], 'cedula') : null,
+      docExtra ? prepararArchivoParaEnvio(archivoInput.files[0], docExtra.prefijo) : null
+    ])
+      .then(([fotoCiData, comprobanteData]) => enviarRegistro(fotoCiData, comprobanteData))
+      .catch(err => {
+        errorEl.textContent = 'No pudimos leer uno de los archivos. Probá con otra foto.';
+        errorEl.style.display = 'block';
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Registrarme';
+        console.error(err);
+      });
+  });
+}
+
+/* Documento que se pide además de la foto de la cédula, según el convenio.
+   Legislador: solo la cédula. Secretario/a: carné. Resto: carta de socio o recibo de sueldo. */
+function documentoExtraConvenio(idConvenio){
+  if(!idConvenio || idConvenio === 'legislador') return null;
+  if(idConvenio === 'secretario'){
+    return { label: 'Foto del carné de secretario/a', ayuda: 'Sacale una foto al carné donde se vea tu nombre.', prefijo: 'carne-secretario' };
+  }
+  return {
+    label: 'Carta de socio de tu convenio o recibo de sueldo con el descuento de tu agrupación',
+    ayuda: 'Podés subir una foto o un PDF. En el recibo tiene que verse el descuento de la agrupación.',
+    prefijo: 'comprobante-convenio'
+  };
+}
+
+/* Lee el archivo como base64. Las fotos se achican (máx. 1600px, JPEG) para que
+   suban rápido desde el celular; los PDF se mandan tal cual. */
+function prepararArchivoParaEnvio(archivo, prefijo){
+  const leerOriginal = () => new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve({ base64: lector.result.split(',')[1], nombreArchivo: archivo.name, mimeType: archivo.type || 'application/octet-stream' });
+    lector.onerror = reject;
+    lector.readAsDataURL(archivo);
+  });
+  if(!archivo.type || !archivo.type.startsWith('image/')) return leerOriginal();
+
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      const escala = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      resolve({ base64: dataUrl.split(',')[1], nombreArchivo: `${prefijo}.jpg`, mimeType: 'image/jpeg' });
+    };
+    // formato que el navegador no sabe dibujar (ej. HEIC): se manda el original
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(leerOriginal()); };
+    img.src = url;
   });
 }
 

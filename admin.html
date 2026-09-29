@@ -106,6 +106,13 @@ header{background:var(--navy-deep);color:#fff;padding:14px 24px;display:flex;ali
 .btn-secundario{background:var(--navy);color:#fff;border:none;padding:9px 18px;border-radius:4px;font-weight:600;font-size:13.5px;cursor:pointer;}
 .btn-secundario:hover{background:var(--navy-soft);}
 .link-comprobante{font-size:13px;color:var(--navy);text-decoration:underline;font-weight:600;}
+.docs-solicitud{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 16px;}
+.doc-preview{display:flex;flex-direction:column;gap:6px;width:240px;max-width:100%;}
+.doc-preview > span{font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);}
+.doc-preview a.doc-thumb{display:flex;align-items:center;justify-content:center;height:160px;border:1px solid var(--line);border-radius:6px;background:rgba(15,42,74,.04);overflow:hidden;}
+.doc-preview a.doc-thumb img{width:100%;height:100%;object-fit:contain;}
+.doc-preview .doc-sin-vista{font-size:12.5px;color:var(--ink-soft);padding:0 12px;text-align:center;}
+.doc-faltante{font-size:13px;color:#b5442e;font-weight:600;}
 .vacio{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
 .cargando{color:var(--ink-soft);font-size:14px;padding:30px;text-align:center;}
 
@@ -932,6 +939,44 @@ function mostrarAccesoDenegado(){
     </div>`;
 }
 
+/* ---- Documentos de la solicitud (foto de CI + carné/carta/recibo) ---- */
+function idArchivoDrive(link){
+  const m = String(link || '').match(/\/d\/([\w-]+)/) || String(link || '').match(/[?&]id=([\w-]+)/);
+  return m ? m[1] : null;
+}
+
+function htmlVistaDocumento(titulo, link){
+  const id = idArchivoDrive(link);
+  const vista = id
+    ? `<img src="https://drive.google.com/thumbnail?id=${id}&sz=w800" alt="${titulo}" loading="lazy"
+         onerror="this.outerHTML='<span class=&quot;doc-sin-vista&quot;>Vista previa no disponible. Tocá para abrir el archivo.</span>'">`
+    : `<span class="doc-sin-vista">Tocá para abrir el archivo.</span>`;
+  return `<div class="doc-preview">
+      <span>${titulo}</span>
+      <a class="doc-thumb" href="${link}" target="_blank" rel="noopener">${vista}</a>
+      <a class="link-comprobante" href="${link}" target="_blank" rel="noopener">Ver en tamaño completo →</a>
+    </div>`;
+}
+
+function htmlDocumentosSolicitud(s){
+  if(s.categoria_solicitada === 'particular' && !s.link_foto_ci && !s.link_comprobante) return '';
+  // Registros hechos antes de que el servidor guardara "link_foto_ci": para socios y
+  // legisladores lo único que se sube es la cédula, así que viene en link_comprobante.
+  const soloCedula = s.categoria_solicitada === 'socio' || (s.categoria_solicitada === 'convenio' && s.id_convenio === 'legislador');
+  const linkCi = s.link_foto_ci || (soloCedula ? s.link_comprobante : '');
+  const linkDoc = s.link_comprobante && s.link_comprobante !== linkCi ? s.link_comprobante : '';
+  const tituloDoc = s.id_convenio === 'secretario' ? 'Carné de secretario/a'
+    : (s.categoria_solicitada === 'convenio' ? 'Carta de socio / recibo de sueldo' : 'Comprobante');
+
+  let html = '<div class="docs-solicitud">';
+  html += linkCi
+    ? htmlVistaDocumento('Foto de la cédula', linkCi)
+    : '<div class="doc-preview"><span>Foto de la cédula</span><p class="doc-faltante">No subió foto de la cédula.</p></div>';
+  if(linkDoc) html += htmlVistaDocumento(tituloDoc, linkDoc);
+  html += '</div>';
+  return html;
+}
+
 function renderSolicitudes(lista){
   document.getElementById('badgeSolicitudes').textContent = lista.length;
   const cont = document.getElementById('listaSocios');
@@ -952,8 +997,9 @@ function renderSolicitudes(lista){
       <div class="datos-grid">
         <div><span>Cédula</span><strong>${s.ci}</strong></div>
         <div><span>Teléfono</span><strong>${s.telefono}</strong></div>
-        ${s.link_comprobante ? `<div><span>Comprobante</span><a class="link-comprobante" href="${s.link_comprobante}" target="_blank">Ver archivo →</a></div>` : ''}
+        ${s.numero_socio ? `<div><span>N° de socio</span><strong>${s.numero_socio}</strong></div>` : ''}
       </div>
+      ${htmlDocumentosSolicitud(s)}
       <div class="card-acciones">
         <button class="btn-aprobar" data-email="${s.email}" data-accion="aprobado">Aprobar</button>
         <button class="btn-rechazar" data-email="${s.email}" data-accion="rechazado">Rechazar</button>
@@ -1044,7 +1090,7 @@ function renderTablaSocios(lista){
   const cont = document.getElementById('tablaSociosCont');
   if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay usuarios registrados todavía.</p>'; return; }
   let html = `<table class="tabla"><thead><tr>
-    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Categoría</th><th>Estado</th>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Categoría</th><th>Estado</th><th>Documentos</th>
   </tr></thead><tbody>`;
   lista.forEach(u => {
     const categoriaTexto = u.categoria_solicitada === 'convenio'
@@ -1053,6 +1099,9 @@ function renderTablaSocios(lista){
     html += `<tr>
       <td>${u.nombre} ${u.apellido}</td><td>${u.email}</td><td>${u.ci}</td><td>${u.telefono}</td>
       <td>${categoriaTexto}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
+      <td>${[u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_foto_ci}" target="_blank" rel="noopener">Cédula</a>` : '',
+             u.link_comprobante && u.link_comprobante !== u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_comprobante}" target="_blank" rel="noopener">Comprobante</a>` : ''
+            ].filter(Boolean).join(' · ') || '—'}</td>
     </tr>`;
   });
   html += '</tbody></table>';
