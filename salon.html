@@ -547,6 +547,8 @@
   .slot.selected{background:var(--gold);border-color:var(--gold);color:var(--navy-deep);}
 
   .taller-libre-texto{font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px 14px;margin-bottom:16px;}
+  .datos-transferencia{font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px 14px;margin-top:16px;line-height:1.6;}
+  .datos-transferencia strong{color:var(--navy-deep);}
   .taller-horario-form{display:flex;gap:16px;flex-wrap:wrap;}
   .taller-horario-form>div{flex:1;min-width:160px;}
   .taller-horario-mensaje{font-size:13px;margin-top:12px;padding:10px 12px;border-radius:4px;display:none;}
@@ -1016,6 +1018,10 @@
         </div>
 
         <div id="bloqueComprobanteSena" style="display:none;">
+          <div class="datos-transferencia">
+            <strong>Datos para transferir:</strong> a nombre de <strong>AFUCAR</strong> · Banco <strong>Itaú</strong> · Cuenta N.° <strong>0852068</strong><br>
+            En la <strong>descripción de la transferencia</strong> poné la <strong>fecha</strong> y <strong>a nombre de quién es la reserva</strong>.
+          </div>
           <label class="sim-label" style="margin-top:16px;" id="labelComprobanteSena">Comprobante de pago de la seña</label>
           <input type="file" id="comprobanteSena" class="sim-select" accept="image/*,.pdf">
         </div>
