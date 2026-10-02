@@ -354,6 +354,20 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
 
     <!-- SOCIOS (listado completo) -->
     <div id="panelSocios" class="panel-tab">
+      <div class="card">
+        <h3 style="font-size:15px;color:var(--navy-deep);margin-bottom:14px;">Generar constancia de socio</h3>
+        <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">
+          Para generarle la constancia a alguien sin que tenga que pedirla desde su cuenta: completá los datos y se genera el mismo PDF de siempre.
+        </p>
+        <div class="form-convenio">
+          <input type="text" id="constanciaNombre" placeholder="Nombre y apellido">
+          <input type="text" id="constanciaNumeroSocio" placeholder="Número de socio" style="max-width:180px;">
+          <input type="date" id="constanciaFecha" style="max-width:180px;">
+          <button class="btn-secundario" id="btnGenerarConstancia">Generar</button>
+        </div>
+        <p id="constanciaMensaje" style="font-size:12.5px;margin-top:8px;"></p>
+      </div>
+
       <input type="text" id="filtroSocios" class="filtro-input" placeholder="Buscar por nombre, email o CI...">
       <div id="tablaSociosCont" class="cargando">Cargando socios...</div>
     </div>
@@ -1076,6 +1090,44 @@ function renderReservas(lista){
     });
   });
 }
+
+/* ============ Generar constancia de socio (a mano, desde el panel) ============ */
+document.getElementById('constanciaFecha').valueAsDate = new Date();
+
+document.getElementById('btnGenerarConstancia').addEventListener('click', () => {
+  const nombreCompleto = document.getElementById('constanciaNombre').value.trim();
+  const numeroSocio = document.getElementById('constanciaNumeroSocio').value.trim();
+  const fecha = document.getElementById('constanciaFecha').value;
+  const msg = document.getElementById('constanciaMensaje');
+  msg.style.color = 'var(--ink-soft)';
+  msg.textContent = '';
+
+  if(!nombreCompleto || !numeroSocio){
+    msg.style.color = '#b5442e';
+    msg.textContent = 'Completá el nombre y el número de socio.';
+    return;
+  }
+
+  const btn = document.getElementById('btnGenerarConstancia');
+  btn.disabled = true; btn.textContent = 'Generando...';
+
+  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+    accion:'generarComprobantePorAdmin', emailAdmin, nombreCompleto, numeroSocio, fecha
+  })})
+  .then(res => res.json())
+  .then(data => {
+    btn.disabled = false; btn.textContent = 'Generar';
+    if(data.error){ msg.style.color = '#b5442e'; msg.textContent = data.error; return; }
+    msg.style.color = '#1f7a45';
+    msg.innerHTML = `✓ Constancia generada. <a class="link-comprobante" href="${data.url}" target="_blank" rel="noopener">Ver / descargar PDF →</a>`;
+  })
+  .catch(err => {
+    btn.disabled = false; btn.textContent = 'Generar';
+    msg.style.color = '#b5442e';
+    msg.textContent = 'No se pudo conectar con el servidor. Probá de nuevo.';
+    console.error(err);
+  });
+});
 
 /* ============ Socios (listado completo) ============ */
 let listaSociosCompleta = [];
