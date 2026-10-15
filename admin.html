@@ -1138,26 +1138,47 @@ function cargarSocios(){
     .catch(err => console.error(err));
 }
 
-function renderTablaSocios(lista){
-  const cont = document.getElementById('tablaSociosCont');
-  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay usuarios registrados todavía.</p>'; return; }
+const CATEGORIAS_SOCIOS_ = [
+  { titulo: 'Socios', filtro: u => u.categoria_solicitada === 'socio' },
+  { titulo: 'Particulares', filtro: u => u.categoria_solicitada === 'particular' },
+  { titulo: 'Convenio · Legisladores', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'legislador' },
+  { titulo: 'Convenio · Secretarios', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'secretario' },
+  { titulo: 'Convenio · Afucase', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'afucase' },
+  { titulo: 'Convenio · Afucoa', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'afucoa' },
+  { titulo: 'Convenio · Otros', filtro: u => u.categoria_solicitada === 'convenio' && !['legislador','secretario','afucase','afucoa'].includes(u.id_convenio) },
+];
+
+function tablaSociosHtml_(items){
   let html = `<table class="tabla"><thead><tr>
-    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Categoría</th><th>Estado</th><th>Documentos</th>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>N° de socio</th><th>Estado</th><th>Documentos</th>
   </tr></thead><tbody>`;
-  lista.forEach(u => {
-    const categoriaTexto = u.categoria_solicitada === 'convenio'
-      ? `Convenio · ${NOMBRES_INST[u.id_convenio] || u.id_convenio}`
-      : (u.categoria_solicitada === 'socio' ? 'Socio' : 'Particular');
+  items.forEach(u => {
     html += `<tr>
       <td>${u.nombre} ${u.apellido}</td><td>${u.email}</td><td>${u.ci}</td><td>${u.telefono}</td>
-      <td>${categoriaTexto}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
+      <td>${u.numero_socio || '—'}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
       <td>${[u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_foto_ci}" target="_blank" rel="noopener">Cédula</a>` : '',
              u.link_comprobante && u.link_comprobante !== u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_comprobante}" target="_blank" rel="noopener">Comprobante</a>` : ''
             ].filter(Boolean).join(' · ') || '—'}</td>
     </tr>`;
   });
   html += '</tbody></table>';
-  cont.innerHTML = html;
+  return html;
+}
+
+function renderTablaSocios(lista){
+  const cont = document.getElementById('tablaSociosCont');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay usuarios registrados todavía.</p>'; return; }
+
+  let html = '';
+  CATEGORIAS_SOCIOS_.forEach(cat => {
+    const items = lista.filter(cat.filtro);
+    if(items.length === 0) return;
+    html += `<details class="grupo-mes" open>
+      <summary>${cat.titulo} <span class="cant">${items.length}</span></summary>
+      ${tablaSociosHtml_(items)}
+    </details>`;
+  });
+  cont.innerHTML = html || '<p class="vacio">No se encontraron socios con ese criterio.</p>';
 }
 
 document.getElementById('filtroSocios').addEventListener('input', (e) => {
