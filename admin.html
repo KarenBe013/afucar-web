@@ -1151,11 +1151,13 @@ const CATEGORIAS_SOCIOS_ = [
 
 function tablaSociosHtml_(items){
   let html = `<table class="tabla"><thead><tr>
-    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>N° de socio</th><th>Estado</th><th>Documentos</th>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Convenio</th><th>N° de socio</th><th>Estado</th><th>Documentos</th>
   </tr></thead><tbody>`;
   items.forEach(u => {
+    const convenioTexto = u.categoria_solicitada === 'convenio' ? (NOMBRES_INST[u.id_convenio] || u.id_convenio) : '—';
     html += `<tr>
       <td>${u.nombre} ${u.apellido}</td><td>${u.email}</td><td>${u.ci}</td><td>${u.telefono}</td>
+      <td>${convenioTexto}</td>
       <td>${u.numero_socio || '—'}</td><td><span class="tag ${u.estado_categoria}">${u.estado_categoria}</span></td>
       <td>${[u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_foto_ci}" target="_blank" rel="noopener">Cédula</a>` : '',
              u.link_comprobante && u.link_comprobante !== u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_comprobante}" target="_blank" rel="noopener">Comprobante</a>` : ''
