@@ -424,6 +424,11 @@
   .msg-subir-pago{font-size:12px;margin-top:6px;color:var(--gold-soft);}
   .rc-pagos .ok{color:#7ed9a0;}
   .rc-pagos .espera{color:var(--gold-soft);}
+  .datos-transferencia-dark{
+    font-size:13px;color:#c6cedb;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);
+    border-radius:5px;padding:10px 12px;margin:4px 0;line-height:1.6;
+  }
+  .datos-transferencia-dark strong{color:#fff;}
 
   .tool-tabs{display:flex;gap:10px;margin-top:22px;margin-bottom:22px;align-items:center;flex-wrap:wrap;}
   .demo-toggle{
@@ -880,7 +885,7 @@
           <option value="secretario">Convenio: Secretario</option>
           <option value="afucase">Convenio: Afucase</option>
           <option value="afucoa">Convenio: Afucoa</option>
-          <option value="adeom">Convenio: ADEOM (ejemplo)</option>
+          <option value="adeom">Convenio: ADEOM</option>
         </select>
       </span>
     </div>
@@ -1386,7 +1391,7 @@ const CONVENIOS_DESCUENTO = [
   { id:'secretario', nombre:'Secretario',  porcentaje:30, monto_sena:4000 },
   { id:'afucase',    nombre:'Afucase',     porcentaje:30, monto_sena:4000 },
   { id:'afucoa',     nombre:'Afucoa',      porcentaje:30, monto_sena:4000 },
-  { id:'adeom',      nombre:'ADEOM (ejemplo)', porcentaje:20, monto_sena:5000 }
+  { id:'adeom',      nombre:'ADEOM',           porcentaje:20, monto_sena:5000 }
 ];
 
 function formatoPesos(n){ return '$ ' + n.toLocaleString('es-UY'); }
@@ -2055,6 +2060,11 @@ function renderMisReservas(lista){
         } else {
           pagosHtml += `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
           pagosHtml += `
+            <div class="datos-transferencia-dark">
+              <strong>Monto a abonar: ${formatoPesos(r.precio_alquiler)}</strong><br>
+              Transferencia a nombre de <strong>AFUCAR</strong> · Banco <strong>Itaú</strong> · Cuenta N.° <strong>0852068</strong><br>
+              En la <strong>descripción de la transferencia</strong> poné la <strong>fecha</strong> y <strong>a nombre de quién es la reserva</strong>.
+            </div>
             <div class="subir-pago-salon">
               <label class="sim-label" style="margin:8px 0 4px;color:#c6cedb;">Subí el comprobante de pago del salón</label>
               <input type="file" class="input-comprobante-pago" data-id="${r.id_reserva}" accept="image/*,.pdf">
