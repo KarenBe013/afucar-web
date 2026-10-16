@@ -701,7 +701,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 function formatoPesos(n){ return '$ ' + Number(n).toLocaleString('es-UY'); }
-const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa' };
+const NOMBRES_INST = { legislador:'Legislador', secretario:'Secretario', afucase:'Afucase', afucoa:'Afucoa', adeom:'ADEOM' };
 
 /* ============ Modal: Detalle completo de una reserva/evento (pagos, comentarios, notas con fecha) ============ */
 function wireBotonesDetalle_(cont){
@@ -1145,7 +1145,8 @@ const CATEGORIAS_SOCIOS_ = [
   { titulo: 'Convenio · Secretarios', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'secretario' },
   { titulo: 'Convenio · Afucase', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'afucase' },
   { titulo: 'Convenio · Afucoa', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'afucoa' },
-  { titulo: 'Convenio · Otros', filtro: u => u.categoria_solicitada === 'convenio' && !['legislador','secretario','afucase','afucoa'].includes(u.id_convenio) },
+  { titulo: 'Convenio · ADEOM', filtro: u => u.categoria_solicitada === 'convenio' && u.id_convenio === 'adeom' },
+  { titulo: 'Convenio · Otros', filtro: u => u.categoria_solicitada === 'convenio' && !['legislador','secretario','afucase','afucoa','adeom'].includes(u.id_convenio) },
 ];
 
 function tablaSociosHtml_(items){
