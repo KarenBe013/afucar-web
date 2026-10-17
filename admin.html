@@ -1133,17 +1133,35 @@ document.getElementById('btnGenerarConstancia').addEventListener('click', () => 
   .catch(err => {
     btn.disabled = false; btn.textContent = 'Generar';
     msg.style.color = '#b5442e';
-    msg.textContent = 'No se pudo generar la constancia. Si sigue pasando, puede que el servidor todavía no tenga esta función (ver docs/apps-script-cambios.md, punto 4).';
+    msg.textContent = err.respuestaServidor
+      ? 'No se pudo generar la constancia. El servidor respondió: ' + err.message
+      : 'No se pudo generar la constancia. Si sigue pasando, puede que el servidor todavía no tenga esta función (ver docs/apps-script-cambios.md, punto 4).';
     console.error(err);
   });
 });
+
+// Lee la respuesta del Apps Script. Si no es JSON (por ejemplo, la página de error que
+// devuelve Google cuando el script falla o necesita volver a autorizarse), arma un error
+// con el texto de esa página para poder ver qué pasó.
+function leerRespuestaServidor_(res){
+  return res.text().then(texto => {
+    try { return JSON.parse(texto); }
+    catch(e){
+      const detalle = new DOMParser().parseFromString(texto, 'text/html').body.textContent
+        .replace(/\s+/g, ' ').trim().slice(0, 300);
+      const err = new Error(detalle || ('Respuesta vacía del servidor (HTTP ' + res.status + ')'));
+      err.respuestaServidor = true;
+      throw err;
+    }
+  });
+}
 
 // Igual que en comprobante.html: el primer intento puede fallar por el "arranque en frío"
 // de Apps Script, así que reintentamos una vez antes de mostrar el error.
 function generarConstanciaConReintento_(body, intento){
   intento = intento || 1;
   return fetch(URL_BACKEND, { method:'POST', body: JSON.stringify(body) })
-    .then(res => res.json())
+    .then(leerRespuestaServidor_)
     .catch(err => {
       if(intento < 2){
         console.warn('Falló el intento ' + intento + ' de generar la constancia, reintentando...', err);

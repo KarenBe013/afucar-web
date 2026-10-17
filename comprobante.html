@@ -945,13 +945,29 @@ function aplicarDatosUsuario(data, email){
   });
 }
 
+// Lee la respuesta del Apps Script. Si no es JSON (por ejemplo, la página de error que
+// devuelve Google cuando el script falla o necesita volver a autorizarse), arma un error
+// con el texto de esa página para poder ver qué pasó.
+function leerRespuestaServidor_(res){
+  return res.text().then(texto => {
+    try { return JSON.parse(texto); }
+    catch(e){
+      const detalle = new DOMParser().parseFromString(texto, 'text/html').body.textContent
+        .replace(/\s+/g, ' ').trim().slice(0, 300);
+      const err = new Error(detalle || ('Respuesta vacía del servidor (HTTP ' + res.status + ')'));
+      err.respuestaServidor = true;
+      throw err;
+    }
+  });
+}
+
 function generarComprobanteConReintento(intento){
   intento = intento || 1;
   return fetch(URL_BACKEND, {
     method: 'POST',
     body: JSON.stringify({ accion: 'generarComprobanteSocio', email: usuarioReal.email })
   })
-  .then(res => res.json())
+  .then(leerRespuestaServidor_)
   .catch(err => {
     // El primer intento puede fallar por un "arranque en frío" de Apps Script
     // (la función tarda en inicializar cuando no se usó hace un rato).
@@ -989,7 +1005,9 @@ document.getElementById('btnGenerar').addEventListener('click', () => {
   .catch(err => {
     btn.disabled = false;
     btn.textContent = 'Generar comprobante';
-    errorEl.textContent = 'No se pudo generar el comprobante. Probá de nuevo.';
+    errorEl.textContent = err.respuestaServidor
+      ? 'No se pudo generar el comprobante. El servidor respondió: ' + err.message
+      : 'No se pudo generar el comprobante. Probá de nuevo.';
     errorEl.style.display = 'block';
     console.error(err);
   });
