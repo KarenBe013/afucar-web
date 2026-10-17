@@ -78,3 +78,67 @@ El servidor calcula el precio de la reserva, así que hay que replicar la regla 
 const CONVENIOS_CON_25 = ['legislador', 'secretario', 'afucase', 'afucoa'];
 const TARIFA_25_CONVENIO = [3850, 5100, 4900, 5500]; // mismo orden de franjas que la web
 ```
+
+## 4. Generar la constancia de socio desde el panel admin
+
+El panel (`admin.html`, sección "Generar constancia de socio") manda un POST con:
+
+| Campo            | Qué es                                              |
+|------------------|-----------------------------------------------------|
+| `accion`         | `'generarComprobantePorAdmin'`                      |
+| `emailAdmin`     | El email de la admin logueada                       |
+| `nombreCompleto` | Nombre y apellido, escrito a mano                   |
+| `numeroSocio`    | Número de socio, escrito a mano                     |
+| `fecha`          | `'AAAA-MM-DD'` (puede venir vacío → usar hoy)       |
+
+y espera de vuelta `{ url: '<link al PDF>' }` o `{ error: '<mensaje>' }`, igual que
+`generarComprobanteSocio`. **Si esta acción no existe en el Apps Script, el botón no puede funcionar.**
+
+La forma más simple es reutilizar lo que ya hace `generarComprobanteSocio`:
+
+1. Dentro de `generarComprobanteSocio`, separá la parte que arma el PDF (copiar la plantilla,
+   reemplazar nombre / número / fecha, exportar a PDF y guardarlo en Drive) en una función propia
+   que reciba los datos ya resueltos:
+
+   ```js
+   // Arma el PDF de la constancia y devuelve el link. Es el mismo código que ya está en
+   // generarComprobanteSocio, solo que recibe los datos en vez de buscarlos por email.
+   function crearPdfConstancia_(nombreCompleto, numeroSocio, fecha) {
+     // ... (pegar acá el código actual que genera el PDF, usando estos tres valores)
+     return archivoPdf.getUrl();
+   }
+   ```
+
+   y que `generarComprobanteSocio` la llame con los datos que busca del usuario.
+
+2. Agregá la acción nueva:
+
+   ```js
+   function generarComprobantePorAdmin(body) {
+     if (!esAdmin_(body.emailAdmin)) {           // ← la misma verificación que usan las otras acciones de admin
+       return { error: 'No autorizado.' };
+     }
+     const nombreCompleto = String(body.nombreCompleto || '').trim();
+     const numeroSocio = String(body.numeroSocio || '').trim();
+     if (!nombreCompleto || !numeroSocio) {
+       return { error: 'Faltan el nombre o el número de socio.' };
+     }
+     // La fecha llega como 'AAAA-MM-DD'; se arma en hora local para que no cambie de día.
+     let fecha = new Date();
+     if (body.fecha) {
+       const [a, m, d] = body.fecha.split('-').map(Number);
+       fecha = new Date(a, m - 1, d);
+     }
+     return { url: crearPdfConstancia_(nombreCompleto, numeroSocio, fecha) };
+   }
+   ```
+
+3. En `doPost`, sumala al lado de las demás acciones:
+
+   ```js
+   case 'generarComprobantePorAdmin':
+     return responderJson_(generarComprobantePorAdmin(body)); // ← como respondan las otras acciones
+   ```
+
+4. **Implementar → Administrar implementaciones → editar → Nueva versión.** Sin este paso
+   la URL `/exec` sigue usando el código viejo, aunque el cambio esté guardado.

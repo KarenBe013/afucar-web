@@ -1111,23 +1111,48 @@ document.getElementById('btnGenerarConstancia').addEventListener('click', () => 
   const btn = document.getElementById('btnGenerarConstancia');
   btn.disabled = true; btn.textContent = 'Generando...';
 
-  fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
-    accion:'generarComprobantePorAdmin', emailAdmin, nombreCompleto, numeroSocio, fecha
-  })})
-  .then(res => res.json())
+  generarConstanciaConReintento_({ accion:'generarComprobantePorAdmin', emailAdmin, nombreCompleto, numeroSocio, fecha })
   .then(data => {
     btn.disabled = false; btn.textContent = 'Generar';
-    if(data.error){ msg.style.color = '#b5442e'; msg.textContent = data.error; return; }
+    if(data.error){
+      msg.style.color = '#b5442e';
+      // Si el Apps Script no tiene la acción, avisamos qué falta en vez de un error genérico.
+      msg.textContent = /acci[oó]n/i.test(data.error) && /(no|desconocid|inv[aá]lid)/i.test(data.error)
+        ? 'El servidor todavía no tiene la función para generar constancias desde el panel (ver docs/apps-script-cambios.md, punto 4).'
+        : data.error;
+      return;
+    }
+    if(!data.url){
+      msg.style.color = '#b5442e';
+      msg.textContent = 'El servidor respondió sin el PDF. Revisá que la acción generarComprobantePorAdmin esté en el Apps Script y que se haya publicado una nueva versión.';
+      return;
+    }
     msg.style.color = '#1f7a45';
     msg.innerHTML = `✓ Constancia generada. <a class="link-comprobante" href="${data.url}" target="_blank" rel="noopener">Ver / descargar PDF →</a>`;
   })
   .catch(err => {
     btn.disabled = false; btn.textContent = 'Generar';
     msg.style.color = '#b5442e';
-    msg.textContent = 'No se pudo conectar con el servidor. Probá de nuevo.';
+    msg.textContent = 'No se pudo generar la constancia. Si sigue pasando, puede que el servidor todavía no tenga esta función (ver docs/apps-script-cambios.md, punto 4).';
     console.error(err);
   });
 });
+
+// Igual que en comprobante.html: el primer intento puede fallar por el "arranque en frío"
+// de Apps Script, así que reintentamos una vez antes de mostrar el error.
+function generarConstanciaConReintento_(body, intento){
+  intento = intento || 1;
+  return fetch(URL_BACKEND, { method:'POST', body: JSON.stringify(body) })
+    .then(res => res.json())
+    .catch(err => {
+      if(intento < 2){
+        console.warn('Falló el intento ' + intento + ' de generar la constancia, reintentando...', err);
+        return new Promise(resolve => setTimeout(resolve, 2000))
+          .then(() => generarConstanciaConReintento_(body, intento + 1));
+      }
+      throw err;
+    });
+}
 
 /* ============ Socios (listado completo) ============ */
 let listaSociosCompleta = [];
