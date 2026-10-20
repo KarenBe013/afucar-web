@@ -770,7 +770,13 @@ function detenerPollingNotificacionesAdmin(){
 // A qué pestaña lleva cada tipo de notificación admin
 function irANotificacionAdmin_(tipo){
   document.getElementById('notifDropdown').style.display = 'none';
-  const panel = tipo === 'pago_salon_subido' ? 'panelPagoSalon' : 'panelReservas';
+  const PANEL_POR_TIPO = {
+    pago_salon_subido: 'panelPagoSalon',
+    nueva_solicitud: 'panelSolicitudes',
+    nueva_consulta: 'panelTickets',
+    nueva_reserva_con_pago: 'panelReservas'
+  };
+  const panel = PANEL_POR_TIPO[tipo] || 'panelReservas';
   const btn = document.querySelector(`.tab-btn[data-panel="${panel}"]`);
   if(btn) btn.click();
 }
@@ -903,8 +909,9 @@ function renderModalDetalle_(r, notas){
       <div><span>Forma de pago de la seña</span><strong>${formaPagoTxt}</strong></div>
       ${r.link_comprobante_sena ? `<div><span>Comprobante de seña</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
       <div><span>Pago del salón</span><strong>${r.pago_salon_confirmado === 'SI' ? 'Confirmado' : 'Pendiente'}</strong></div>
+      <div><span>Pagado hasta ahora</span><strong>${formatoPesos(r.monto_pagado_salon || 0)} de ${formatoPesos(r.precio_alquiler)}</strong></div>
       ${r.fecha_pago_salon ? `<div><span>Fecha de pago del salón</span><strong>${new Date(r.fecha_pago_salon).toLocaleDateString('es-UY')}</strong></div>` : ''}
-      ${r.link_comprobante_pago_salon ? `<div><span>Comprobante de pago del salón</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>` : ''}
+      ${(r.comprobantes_pago_salon || []).map(c => `<div><span>Comprobante del ${c.fecha_subida}</span><a class="link-comprobante" href="${c.link_comprobante}" target="_blank">${formatoPesos(c.monto)} — Ver archivo →</a></div>`).join('')}
     </div>
 
     <div class="modal-seccion-titulo">Cierre y devolución</div>
@@ -2016,6 +2023,7 @@ function pagoSalonItemHtml(r){
   const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
   const esDescuentoSueldo = r.forma_pago_sena === 'descuento_sueldo';
   const formaPagoTxt = esDescuentoSueldo ? 'Descuento de sueldo' : 'Transferencia';
+  const comprobantes = r.comprobantes || [];
   return `
     <details class="evento-row">
       <summary>
@@ -2030,12 +2038,26 @@ function pagoSalonItemHtml(r){
         ${esDescuentoSueldo ? `<div style="background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.3);border-radius:4px;padding:8px 12px;margin:14px 0 0;font-size:12.5px;color:#a4801f;">⚠️ Recordá enviarlo a Retenciones</div>` : ''}
         <div class="datos-grid">
           <div><span>Precio del salón</span><strong>${formatoPesos(r.precio_alquiler)}</strong></div>
-          ${r.link_comprobante_pago_salon
-            ? `<div><span>Comprobante</span><a class="link-comprobante" href="${r.link_comprobante_pago_salon}" target="_blank">Ver archivo →</a></div>`
-            : `<div><span>Comprobante</span><strong style="color:var(--ink-soft);font-weight:500;">Todavía no lo subió</strong></div>`}
+          <div><span>Pagado hasta ahora</span><strong>${formatoPesos(r.monto_pagado_salon)}</strong></div>
+          <div><span>Saldo pendiente</span><strong>${formatoPesos(r.saldo_pendiente_salon)}</strong></div>
         </div>
+
+        <div class="modal-seccion-titulo" style="margin-top:14px;">Comprobantes subidos</div>
+        ${comprobantes.length === 0
+          ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:4px;">Todavía no subió ningún comprobante.</p>`
+          : `<div class="datos-grid">${comprobantes.map(c => `
+              <div><span>${c.fecha_subida}</span><strong>${formatoPesos(c.monto)}</strong>
+                <a class="link-comprobante" href="${c.link_comprobante}" target="_blank" style="margin-left:8px;">Ver archivo →</a>
+              </div>`).join('')}</div>`
+        }
+
+        <div class="nota-nueva-fila" style="margin-top:12px;">
+          <input type="number" min="1" class="input-monto-pago-salon" data-id="${r.id_reserva}" placeholder="Monto a registrar" style="max-width:180px;">
+          <button class="btn-secundario btn-registrar-pago-salon" data-id="${r.id_reserva}">Registrar pago</button>
+        </div>
+
         <div class="card-acciones">
-          <button class="btn-aprobar" data-id="${r.id_reserva}">Confirmar pago recibido</button>
+          <button class="btn-aprobar" data-id="${r.id_reserva}">Marcar como pagado por completo</button>
           <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
         </div>
       </div>
@@ -2050,7 +2072,7 @@ function renderPagoSalon(lista){
 
   cont.querySelectorAll('.btn-aprobar').forEach(btn => {
     btn.addEventListener('click', () => {
-      if(!confirm('¿Confirmás que ya recibiste el pago del alquiler del salón?')) return;
+      if(!confirm('¿Confirmás que ya recibiste el pago completo del alquiler del salón?')) return;
       btn.disabled = true; btn.textContent = '...';
       fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
         accion:'confirmarPagoSalon', emailAdmin, idReserva: btn.dataset.id
@@ -2058,6 +2080,25 @@ function renderPagoSalon(lista){
       .then(res => res.json())
       .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarPagoSalon(); })
       .catch(err => { console.error(err); btn.disabled=false; });
+    });
+  });
+
+  cont.querySelectorAll('.btn-registrar-pago-salon').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const input = cont.querySelector(`.input-monto-pago-salon[data-id="${id}"]`);
+      const monto = Number(input.value);
+      if(!monto || monto <= 0){ alert('Ingresá un monto válido.'); return; }
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'registrarPagoParcialSalon', emailAdmin, idReserva: id, monto
+      })})
+      .then(res => res.json())
+      .then(data => {
+        if(data.error){ alert(data.error); btn.disabled=false; btn.textContent='Registrar pago'; return; }
+        cargarPagoSalon();
+      })
+      .catch(err => { console.error(err); btn.disabled=false; btn.textContent='Registrar pago'; });
     });
   });
 }
