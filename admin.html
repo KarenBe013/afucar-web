@@ -30,6 +30,36 @@ header{background:var(--navy-deep);color:#fff;padding:14px 24px;display:flex;ali
 .brand .sub{font-size:9px;letter-spacing:.03em;text-transform:uppercase;color:#9fb0c8;line-height:1.35;max-width:260px;}
 
 #areaUsuarioHeader{display:flex;align-items:center;gap:10px;font-size:13.5px;color:#dfe4ec;}
+
+/* ---------- Notificaciones (panel admin) ---------- */
+.notif-wrap{position:relative;}
+.btn-notif{
+  background:transparent;border:none;cursor:pointer;font-size:18px;position:relative;
+  padding:4px 6px;line-height:1;color:#dfe4ec;
+}
+.notif-badge{
+  position:absolute;top:-2px;right:-2px;background:#e14b4b;color:#fff;
+  font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px;
+}
+.notif-dropdown{
+  position:absolute;top:calc(100% + 10px);right:0;width:320px;max-height:400px;overflow-y:auto;
+  background:var(--paper-white);border:1px solid var(--line);border-radius:8px;
+  box-shadow:0 12px 30px -8px rgba(0,0,0,.35);z-index:100;
+}
+.notif-dropdown-header{
+  padding:12px 16px;font-size:13px;font-weight:700;color:var(--navy-deep);
+  border-bottom:1px solid var(--line);background:var(--paper);
+}
+.notif-lista{padding:6px;}
+.notif-item{
+  padding:10px 12px;border-radius:5px;font-size:13px;color:var(--ink);
+  display:flex;flex-direction:column;gap:3px;cursor:pointer;
+}
+.notif-item:hover{background:rgba(201,162,39,.18);}
+.notif-item.no-leida{background:rgba(201,162,39,.1);}
+.notif-item .notif-fecha{font-size:11px;color:var(--ink-soft);}
+.notif-vacio{padding:20px;text-align:center;font-size:13px;color:var(--ink-soft);}
 .btn-login{
   background:var(--paper-white);color:var(--navy-deep);white-space:nowrap;flex-shrink:0;
   padding:9px 18px;border-radius:4px;font-weight:700;font-size:13.5px;
@@ -307,6 +337,15 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
     </button>
   </div>
   <div id="areaUsuarioHeader" style="display:none;">
+    <div class="notif-wrap">
+      <button id="btnNotif" class="btn-notif" aria-label="Notificaciones">
+        🔔<span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown" style="display:none;">
+        <div class="notif-dropdown-header">Notificaciones</div>
+        <div id="notifLista" class="notif-lista"></div>
+      </div>
+    </div>
     <span id="nombreUsuarioHeader"></span>
     <a id="btnCerrarSesionHeader">Cerrar sesión</a>
   </div>
@@ -671,10 +710,12 @@ function procesarLoginAdmin(email, token){
   cargarMediaAdmin();
   cargarDirectivaAdmin();
   inicializarSelectMeses();
+  cargarNotificacionesAdmin();
 }
 
 document.getElementById('btnCerrarSesionHeader').addEventListener('click', () => {
   emailAdmin = null;
+  detenerPollingNotificacionesAdmin();
   if(window.google && google.accounts && google.accounts.id){
     google.accounts.id.disableAutoSelect();
   }
@@ -698,6 +739,99 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     panel.classList.add('active');
     if(btn.dataset.panel === 'panelCalendario') panel.classList.add('imprimir-activo');
   });
+});
+
+/* ============ Notificaciones (panel admin) ============ */
+let notificacionesAdminActuales = [];
+let notifAdminPollingInterval = null;
+
+function cargarNotificacionesAdmin(){
+  if(!emailAdmin) return;
+  fetch(`${URL_BACKEND}?accion=obtenerNotificacionesAdmin&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderNotificacionesAdmin(data.notificaciones || []); })
+    .catch(err => console.error(err));
+
+  if(!notifAdminPollingInterval){
+    notifAdminPollingInterval = setInterval(cargarNotificacionesAdmin, 45000); // cada 45 segundos
+  }
+}
+
+function detenerPollingNotificacionesAdmin(){
+  if(notifAdminPollingInterval){
+    clearInterval(notifAdminPollingInterval);
+    notifAdminPollingInterval = null;
+  }
+  notificacionesAdminActuales = [];
+  document.getElementById('notifBadge').style.display = 'none';
+  document.getElementById('notifLista').innerHTML = '';
+}
+
+// A qué pestaña lleva cada tipo de notificación admin
+function irANotificacionAdmin_(tipo){
+  document.getElementById('notifDropdown').style.display = 'none';
+  const panel = tipo === 'pago_salon_subido' ? 'panelPagoSalon' : 'panelReservas';
+  const btn = document.querySelector(`.tab-btn[data-panel="${panel}"]`);
+  if(btn) btn.click();
+}
+
+function renderNotificacionesAdmin(lista){
+  notificacionesAdminActuales = lista;
+  const noLeidas = lista.filter(n => n.leida === 'NO').length;
+  const badge = document.getElementById('notifBadge');
+  if(noLeidas > 0){
+    badge.textContent = noLeidas > 9 ? '9+' : noLeidas;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const cont = document.getElementById('notifLista');
+  if(lista.length === 0){
+    cont.innerHTML = '<div class="notif-vacio">No hay notificaciones todavía.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map((n, idx) => `
+    <div class="notif-item ${n.leida === 'NO' ? 'no-leida' : ''}" data-idx="${idx}">
+      <span>${n.mensaje}</span>
+      <span class="notif-fecha">${n.fecha}</span>
+    </div>
+  `).join('');
+
+  cont.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const n = notificacionesAdminActuales[Number(el.dataset.idx)];
+      if(n) irANotificacionAdmin_(n.tipo);
+    });
+  });
+}
+
+document.getElementById('btnNotif').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('notifDropdown');
+  const abrir = dropdown.style.display === 'none';
+  dropdown.style.display = abrir ? 'block' : 'none';
+
+  if(abrir && notificacionesAdminActuales.some(n => n.leida === 'NO')){
+    fetch(URL_BACKEND, {
+      method: 'POST',
+      body: JSON.stringify({ accion: 'marcarNotificacionesLeidasAdmin', emailAdmin })
+    })
+    .then(res => res.json())
+    .then(() => {
+      document.getElementById('notifBadge').style.display = 'none';
+      document.querySelectorAll('.notif-item').forEach(el => el.classList.remove('no-leida'));
+    })
+    .catch(err => console.error(err));
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('notifDropdown');
+  const wrap = document.querySelector('.notif-wrap');
+  if(dropdown.style.display === 'block' && wrap && !wrap.contains(e.target)){
+    dropdown.style.display = 'none';
+  }
 });
 
 function formatoPesos(n){ return '$ ' + Number(n).toLocaleString('es-UY'); }
