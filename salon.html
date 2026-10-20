@@ -2058,15 +2058,20 @@ function renderMisReservas(lista){
         if(r.pago_salon_confirmado === 'SI'){
           pagosHtml += `<div class="ok">✓ Pago del salón confirmado</div>`;
         } else {
-          pagosHtml += `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
+          const montoPagado = r.monto_pagado_salon || 0;
+          const saldo = r.saldo_pendiente_salon != null ? r.saldo_pendiente_salon : r.precio_alquiler;
+          pagosHtml += montoPagado > 0
+            ? `<div class="espera">⏳ Pagaste ${formatoPesos(montoPagado)} de ${formatoPesos(r.precio_alquiler)} — saldo pendiente: ${formatoPesos(saldo)}</div>`
+            : `<div class="espera">⏳ Pago del salón pendiente de confirmación</div>`;
           pagosHtml += `
             <div class="datos-transferencia-dark">
-              <strong>Monto a abonar: ${formatoPesos(r.precio_alquiler)}</strong><br>
+              <strong>Monto a abonar: ${formatoPesos(saldo)}</strong><br>
               Transferencia a nombre de <strong>AFUCAR</strong> · Banco <strong>Itaú</strong> · Cuenta N.° <strong>0852068</strong><br>
               En la <strong>descripción de la transferencia</strong> poné la <strong>fecha</strong> y <strong>a nombre de quién es la reserva</strong>.
             </div>
             <div class="subir-pago-salon">
-              <label class="sim-label" style="margin:8px 0 4px;color:#c6cedb;">Subí el comprobante de pago del salón</label>
+              <label class="sim-label" style="margin:8px 0 4px;color:#c6cedb;">Subí el comprobante de pago del salón (podés subir varios si pagás en partes)</label>
+              <input type="number" min="1" class="input-monto-pago" data-id="${r.id_reserva}" placeholder="Monto transferido" style="width:100%;font-size:12.5px;padding:6px 8px;margin-bottom:8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;">
               <input type="file" class="input-comprobante-pago" data-id="${r.id_reserva}" accept="image/*,.pdf">
               <button class="btn-subir-pago" data-id="${r.id_reserva}">Subir comprobante</button>
               <p class="msg-subir-pago" data-id="${r.id_reserva}"></p>
@@ -2110,8 +2115,14 @@ function renderMisReservas(lista){
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
       const archivoInput = cont.querySelector(`.input-comprobante-pago[data-id="${id}"]`);
+      const montoInput = cont.querySelector(`.input-monto-pago[data-id="${id}"]`);
       const msgEl = cont.querySelector(`.msg-subir-pago[data-id="${id}"]`);
+      const monto = Number(montoInput.value);
 
+      if(!monto || monto <= 0){
+        msgEl.textContent = 'Ingresá el monto que transferiste.';
+        return;
+      }
       if(!archivoInput.files || archivoInput.files.length === 0){
         msgEl.textContent = 'Elegí un archivo primero.';
         return;
@@ -2131,6 +2142,7 @@ function renderMisReservas(lista){
             accion: 'subirComprobantePagoSalon',
             email: usuarioReal.email,
             idReserva: id,
+            monto,
             comprobante: { base64, nombreArchivo: archivo.name, mimeType: archivo.type }
           })
         })
