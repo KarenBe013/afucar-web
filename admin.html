@@ -378,6 +378,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelDirectiva">Directiva</button>
       <button class="tab-btn" data-panel="panelCierre">Cierre de eventos <span class="badge" id="badgeCierre">0</span></button>
       <button class="tab-btn" data-panel="panelPagoSalon">Pagos del salón <span class="badge" id="badgePagoSalon">0</span></button>
+      <button class="tab-btn" data-panel="panelSenasSueldo">Señas por sueldo <span class="badge" id="badgeSenasSueldo">0</span></button>
       <button class="tab-btn" data-panel="panelReservasTalleres">Reservas de talleres <span class="badge" id="badgeReservasTalleres">0</span></button>
     </div>
 
@@ -611,6 +612,15 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <div id="listaPagoSalon" class="cargando">Cargando...</div>
     </div>
 
+    <!-- SEÑAS POR DESCUENTO DE SUELDO -->
+    <div id="panelSenasSueldo" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
+        Reservas aprobadas con la seña por descuento de sueldo. Aprobar la reserva no implica que ya se cobró —
+        confirmá cada una cuando mandes las retenciones del mes a contaduría.
+      </p>
+      <div id="listaSenasSueldo" class="cargando">Cargando...</div>
+    </div>
+
     <!-- RESERVAS DE TALLERES (seguimiento post-aprobación) -->
     <div id="panelReservasTalleres" class="panel-tab">
       <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;">
@@ -706,6 +716,7 @@ function procesarLoginAdmin(email, token){
   cargarTickets();
   cargarCierre();
   cargarPagoSalon();
+  cargarSenasSueldo();
   cargarReservasTalleres();
   cargarMediaAdmin();
   cargarDirectivaAdmin();
@@ -907,6 +918,7 @@ function renderModalDetalle_(r, notas){
     <div class="datos-grid">
       <div><span>Seña</span><strong>${formatoPesos(r.monto_sena)}</strong></div>
       <div><span>Forma de pago de la seña</span><strong>${formaPagoTxt}</strong></div>
+      ${r.forma_pago_sena === 'descuento_sueldo' ? `<div><span>Descuento de sueldo</span><strong>${r.sena_confirmada === 'NO' ? 'Pendiente de confirmar' : 'Confirmado'}</strong></div>` : ''}
       ${r.link_comprobante_sena ? `<div><span>Comprobante de seña</span><a class="link-comprobante" href="${r.link_comprobante_sena}" target="_blank">Ver archivo →</a></div>` : ''}
       <div><span>Pago del salón</span><strong>${r.pago_salon_confirmado === 'SI' ? 'Confirmado' : 'Pendiente'}</strong></div>
       <div><span>Pagado hasta ahora</span><strong>${formatoPesos(r.monto_pagado_salon || 0)} de ${formatoPesos(r.precio_alquiler)}</strong></div>
@@ -1060,6 +1072,7 @@ function refrescarListasReservas_(){
   cargarReservasPendientes();
   cargarCierre();
   cargarPagoSalon();
+  cargarSenasSueldo();
   cargarReservasTalleres();
   cargarCalendarioYListado();
 }
@@ -2099,6 +2112,54 @@ function renderPagoSalon(lista){
         cargarPagoSalon();
       })
       .catch(err => { console.error(err); btn.disabled=false; btn.textContent='Registrar pago'; });
+    });
+  });
+}
+
+/* ============ Señas por descuento de sueldo (pendientes de confirmar) ============ */
+function cargarSenasSueldo(){
+  fetch(`${URL_BACKEND}?accion=obtenerSenasDescuentoSueldoPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
+    .then(res => res.json())
+    .then(data => { if(data.error) return; renderSenasSueldo(data.reservas || []); })
+    .catch(err => console.error(err));
+}
+
+function senaSueldoItemHtml(r){
+  const fechaTxt = new Date(r.fecha).toLocaleDateString('es-UY', {day:'2-digit', month:'2-digit', year:'numeric'});
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">Reserva del ${fechaTxt}</div></div>
+        <span class="tag" style="background:rgba(201,162,39,.18);color:#a4801f;">💰 Descuento de sueldo</span>
+      </div>
+      <div class="datos-grid">
+        <div><span>Monto de la seña</span><strong>${formatoPesos(r.monto_sena)}</strong></div>
+      </div>
+      <div class="card-acciones">
+        <button class="btn-aprobar btn-confirmar-sena-sueldo" data-id="${r.id_reserva}">Confirmar descuento realizado</button>
+        <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
+      </div>
+    </div>`;
+}
+
+function renderSenasSueldo(lista){
+  document.getElementById('badgeSenasSueldo').textContent = lista.length;
+  const cont = document.getElementById('listaSenasSueldo');
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No hay señas por descuento de sueldo pendientes de confirmar.</p>'; return; }
+  cont.innerHTML = lista.map(senaSueldoItemHtml).join('');
+  wireBotonesDetalle_(cont);
+
+  cont.querySelectorAll('.btn-confirmar-sena-sueldo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(!confirm('¿Confirmás que ya se procesó el descuento de esta seña por sueldo?')) return;
+      btn.disabled = true; btn.textContent = '...';
+      fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+        accion:'confirmarSenaDescuentoSueldo', emailAdmin, idReserva: btn.dataset.id
+      })})
+      .then(res => res.json())
+      .then(data => { if(data.error){ alert(data.error); btn.disabled=false; return;} cargarSenasSueldo(); })
+      .catch(err => { console.error(err); btn.disabled=false; });
     });
   });
 }
