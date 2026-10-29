@@ -1235,16 +1235,17 @@ function mostrarFormularioRegistro(email, nombreGoogle){
             <select id="regInstitucion"></select>
           </div>
         </div>
+        <div id="regAvisoDocumentos" style="display:none;margin:0 0 14px;padding:12px 14px;border-radius:8px;background:#fff4e0;color:#8a5a00;font-size:13.5px;font-weight:600;line-height:1.5;"></div>
         <div id="regBloqueFotoCi" style="display:none;">
           <div class="cuenta-field">
-            <label>Foto de tu cédula de identidad</label>
+            <label style="color:#fff;font-weight:700;">📄 Foto de FRENTE de tu cédula de identidad</label>
             <input type="file" id="regFotoCi" accept="image/*">
-            <small>Sacale una foto al frente de la cédula, que se lea bien. La usamos solo para verificar tu identidad.</small>
+            <small>Tiene que ser el frente (donde está tu foto y tu nombre), que se lea bien. La usamos solo para verificar tu identidad.</small>
           </div>
         </div>
         <div id="regBloqueComprobante" style="display:none;">
           <div class="cuenta-field">
-            <label id="regLabelComprobante"></label>
+            <label id="regLabelComprobante" style="color:#fff;font-weight:700;"></label>
             <input type="file" id="regComprobante" accept="image/*,.pdf">
             <small id="regAyudaComprobante"></small>
           </div>
@@ -1272,6 +1273,7 @@ function mostrarFormularioRegistro(email, nombreGoogle){
   const bloqueSocio = document.getElementById('regBloqueSocio');
   const bloqueConvenio = document.getElementById('regBloqueConvenio');
   const bloqueFotoCi = document.getElementById('regBloqueFotoCi');
+  const avisoDocumentos = document.getElementById('regAvisoDocumentos');
   const bloqueComprobante = document.getElementById('regBloqueComprobante');
   const labelComprobante = document.getElementById('regLabelComprobante');
   const ayudaComprobante = document.getElementById('regAyudaComprobante');
@@ -1290,10 +1292,20 @@ function mostrarFormularioRegistro(email, nombreGoogle){
     const doc = categoria === 'convenio' ? documentoExtraConvenio(elInstitucion.value) : null;
     if(doc){
       bloqueComprobante.style.display = 'block';
-      labelComprobante.textContent = doc.label;
+      labelComprobante.textContent = `📎 ${doc.label}`;
       ayudaComprobante.textContent = doc.ayuda;
     } else {
       bloqueComprobante.style.display = 'none';
+    }
+
+    if(categoria === 'particular'){
+      avisoDocumentos.style.display = 'none';
+    } else if(doc){
+      avisoDocumentos.style.display = 'block';
+      avisoDocumentos.textContent = `⚠️ Para aprobarte necesitamos 2 documentos: la foto de frente de tu cédula Y ${doc.label.toLowerCase()}. Sin los dos no podemos aprobar tu membresía.`;
+    } else {
+      avisoDocumentos.style.display = 'block';
+      avisoDocumentos.textContent = `⚠️ No te olvides de subir la foto de frente de tu cédula más abajo — es obligatoria para aprobarte.`;
     }
   }
 
@@ -1395,7 +1407,7 @@ function documentoExtraConvenio(idConvenio){
     return { label: 'Foto del carné de secretario/a', ayuda: 'Sacale una foto al carné donde se vea tu nombre.', prefijo: 'carne-secretario' };
   }
   return {
-    label: 'Carta de socio de tu convenio o recibo de sueldo con el descuento de tu agrupación',
+    label: 'Comprobante de socio de tu convenio o recibo de sueldo',
     ayuda: 'Podés subir una foto o un PDF. En el recibo tiene que verse el descuento de la agrupación.',
     prefijo: 'comprobante-convenio'
   };
