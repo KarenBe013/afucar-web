@@ -373,6 +373,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       <button class="tab-btn" data-panel="panelConvenios">Convenios</button>
       <button class="tab-btn" data-panel="panelSimulador">Simulador</button>
       <button class="tab-btn" data-panel="panelCalendario">Calendario</button>
+      <button class="tab-btn" data-panel="panelBuscar">Buscar</button>
       <button class="tab-btn" data-panel="panelTickets">Consultas <span class="badge" id="badgeTickets">0</span></button>
       <button class="tab-btn" data-panel="panelMedia">Fotos y videos</button>
       <button class="tab-btn" data-panel="panelDirectiva">Directiva</button>
@@ -539,6 +540,16 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
           <tbody id="tablaListadoBody"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- BUSCADOR DE RESERVAS -->
+    <div id="panelBuscar" class="panel-tab">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;">
+        Buscá por nombre, fecha (ej: 21/11 o noviembre), día de la semana o estado (pendiente, aprobada, rechazada, cancelada).
+        Incluye reservas de cualquier mes y de cualquier estado.
+      </p>
+      <input type="text" id="buscadorReservas" class="filtro-input" placeholder="Buscar reservas...">
+      <div id="resultadosBuscador"></div>
     </div>
 
     <!-- TICKETS -->
@@ -1773,6 +1784,51 @@ function renderListadoMensual(lista, tipo, anio, mes){
     tbody.appendChild(tr);
   });
 }
+
+/* ============ Buscador de reservas ============ */
+const ESTADOS_RESERVA_BUSCADOR_ = { pendiente:'Pendiente', aprobada:'Aprobada', rechazada:'Rechazada', cancelada:'Cancelada' };
+
+function resultadoBuscadorItemHtml(r){
+  const inicio = new Date(r.hora_inicio);
+  const fin = new Date(r.hora_fin);
+  const fechaTxt = inicio.toLocaleDateString('es-UY', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const horaTxt = `${inicio.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})} a ${fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit'})}`;
+  const tipoTxt = r.tipo_espacio === 'eventos' ? 'Salón de eventos' : 'Salón de talleres';
+  const estadoStyle = (r.estado_reserva === 'cancelada' || r.estado_reserva === 'rechazada') ? 'background:rgba(181,68,46,.12);color:#b5442e;'
+    : (r.estado_reserva === 'aprobada' ? 'background:rgba(47,158,92,.12);color:#1f7a45;' : '');
+  return `
+    <div class="card">
+      <div class="card-top">
+        <div><div class="card-title">${r.nombre_solicitante}</div>
+        <div class="card-sub">${tipoTxt} · ${fechaTxt} · ${horaTxt}${r.capacidad_personas ? ' · ' + r.capacidad_personas + ' personas' : ''}</div></div>
+        <span class="tag" style="${estadoStyle}">${ESTADOS_RESERVA_BUSCADOR_[r.estado_reserva] || r.estado_reserva}</span>
+      </div>
+      <div class="card-acciones">
+        <button class="btn-detalle" data-id="${r.id_reserva}">Ver detalle y notas</button>
+      </div>
+    </div>`;
+}
+
+function renderResultadosBuscador(lista, query){
+  const cont = document.getElementById('resultadosBuscador');
+  if(!query){ cont.innerHTML = ''; return; }
+  if(lista.length === 0){ cont.innerHTML = '<p class="vacio">No se encontraron reservas.</p>'; return; }
+  cont.innerHTML = lista.map(resultadoBuscadorItemHtml).join('');
+  wireBotonesDetalle_(cont);
+}
+
+let buscadorReservasTimeout_ = null;
+document.getElementById('buscadorReservas').addEventListener('input', (e) => {
+  const query = e.target.value.trim();
+  clearTimeout(buscadorReservasTimeout_);
+  if(!query){ renderResultadosBuscador([], ''); return; }
+  buscadorReservasTimeout_ = setTimeout(() => {
+    fetch(`${URL_BACKEND}?accion=buscarReservas&emailAdmin=${encodeURIComponent(emailAdmin)}&query=${encodeURIComponent(query)}&_ts=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => { if(data.error) return; renderResultadosBuscador(data.reservas || [], query); })
+      .catch(err => console.error(err));
+  }, 300);
+});
 
 /* ============ Tickets ============ */
 function cargarTickets(){
