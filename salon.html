@@ -1549,6 +1549,23 @@ function franjasValidasDelDia(fecha){
   return esFinDeSemana ? [1, 3] : [0, 2];
 }
 
+const BUFFER_LIMPIEZA_MS = 3 * 60 * 60 * 1000; // 3hs de limpieza entre un evento y el siguiente
+const DURACION_EVENTO_MS = 6 * 60 * 60 * 1000; // todo evento dura 6hs, aunque se corra el horario
+
+// Si el evento de la mañana se extendió ese día (p. ej. le dieron una hora más),
+// busca hasta qué hora quedó ocupado antes del horario de la tarde por defecto.
+function finEventoAnteriorMismoDia_(fecha){
+  const inicioDia = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 0, 0);
+  const limiteDefault = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 19, 0);
+  let finMasTarde = null;
+  eventosMesActual.forEach(ev => {
+    if(ev.inicio >= inicioDia && ev.fin <= limiteDefault){
+      if(!finMasTarde || ev.fin > finMasTarde) finMasTarde = ev.fin;
+    }
+  });
+  return finMasTarde;
+}
+
 function rangoFranjaEventos(fecha, idx){
   if(idx === 0 || idx === 1){ // 10 a 16hs
     return {
@@ -1556,11 +1573,16 @@ function rangoFranjaEventos(fecha, idx){
       fin:    new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 16, 0)
     };
   }
-  // 19 a 01hs (termina al día siguiente)
-  return {
-    inicio: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 19, 0),
-    fin:    new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1, 1, 0)
-  };
+  // Tarde/noche: por defecto 19 a 01hs (6hs), pero si el evento de la mañana se
+  // extendió ese día, se corre para respetar las 3hs de limpieza entre eventos.
+  const inicioDefault = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), 19, 0);
+  const finAnterior = finEventoAnteriorMismoDia_(fecha);
+  let inicio = inicioDefault;
+  if(finAnterior){
+    const inicioMinimo = new Date(finAnterior.getTime() + BUFFER_LIMPIEZA_MS);
+    if(inicioMinimo > inicio) inicio = inicioMinimo;
+  }
+  return { inicio, fin: new Date(inicio.getTime() + DURACION_EVENTO_MS) };
 }
 
 // El salón de talleres abre de 8:00 a 24:00hs, todos los días, sin cortes.
@@ -1684,7 +1706,10 @@ function mostrarSlots(fecha){
     franjasValidasDelDia(fecha).forEach(idx => {
       const r = rangoFranjaEventos(fecha, idx);
       const libre = !franjaOcupada(r.inicio, r.fin);
-      const texto = FRANJAS[idx];
+      const prefijoDia = (idx === 0 || idx === 2) ? 'Lunes a Jueves' : 'Viernes a Domingos';
+      const horaIniTxt = r.inicio.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+      const horaFinTxt = r.fin.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit'});
+      const texto = `${prefijoDia} · ${horaIniTxt} a ${horaFinTxt} hs`;
       const slot = document.createElement('div');
       slot.className = 'slot ' + (libre ? 'free' : 'busy');
       slot.textContent = texto + (libre ? '' : ' — ocupado');
