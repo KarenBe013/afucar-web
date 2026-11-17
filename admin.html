@@ -409,7 +409,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
         <p id="constanciaMensaje" style="font-size:12.5px;margin-top:8px;"></p>
       </div>
 
-      <input type="text" id="filtroSocios" class="filtro-input" placeholder="Buscar por nombre, email o CI...">
+      <input type="text" id="filtroSocios" class="filtro-input" placeholder="Buscar por nombre, email o CI..." autocomplete="off">
       <div id="tablaSociosCont" class="cargando">Cargando socios...</div>
     </div>
 
@@ -548,7 +548,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
         Buscá por nombre, fecha (ej: 21/11 o noviembre), día de la semana o estado (pendiente, aprobada, rechazada, cancelada).
         Incluye reservas de cualquier mes y de cualquier estado.
       </p>
-      <input type="text" id="buscadorReservas" class="filtro-input" placeholder="Buscar reservas...">
+      <input type="text" id="buscadorReservas" class="filtro-input" placeholder="Buscar reservas..." autocomplete="off">
       <div id="resultadosBuscador"></div>
     </div>
 
@@ -609,7 +609,7 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
       </div>
 
       <div id="historialCont" style="display:none;">
-        <input type="text" id="buscadorHistorial" class="filtro-input" placeholder="Buscar por fecha del evento (dd/mm/aaaa) o nombre...">
+        <input type="text" id="buscadorHistorial" class="filtro-input" placeholder="Buscar por fecha del evento (dd/mm/aaaa) o nombre..." autocomplete="off">
         <div id="tablaHistorialCont" class="cargando">Cargando historial...</div>
       </div>
     </div>
@@ -1444,7 +1444,7 @@ const CATEGORIAS_SOCIOS_ = [
 ];
 
 function tablaSociosHtml_(items){
-  let html = `<table class="tabla"><thead><tr>
+  let html = `<div style="overflow-x:auto;"><table class="tabla"><thead><tr>
     <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Convenio</th><th>N° de socio</th><th>Estado</th><th>Documentos</th><th>Acciones</th>
   </tr></thead><tbody>`;
   items.forEach(u => {
@@ -1459,7 +1459,7 @@ function tablaSociosHtml_(items){
       <td><button class="btn-ghost-mini btn-editar-usuario" data-email="${u.email}">Editar</button></td>
     </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   return html;
 }
 
