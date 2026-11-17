@@ -653,6 +653,13 @@ table.tabla input[type="text"]{width:100%;border:none;background:transparent;fon
   </div>
 </div>
 
+<div id="modalEditarUsuario" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-cerrar" id="btnCerrarModalEditarUsuario">&times;</button>
+    <div id="modalEditarUsuarioContenido" class="cargando">Cargando...</div>
+  </div>
+</div>
+
 <script>
 const URL_BACKEND = "https://script.google.com/macros/s/AKfycbyCbIZM6bHkPD10PE2U3RUkZZAom6UFAGW7PU969fu4gZNNSg7Nq1ShfsYR5fVXx05j/exec";
 let emailAdmin = null;
@@ -1095,6 +1102,128 @@ document.getElementById('modalDetalle').addEventListener('click', (e) => {
   if(e.target.id === 'modalDetalle') document.getElementById('modalDetalle').classList.remove('activo');
 });
 
+/* ============ Modal: Editar / eliminar un socio o usuario registrado ============ */
+document.getElementById('btnCerrarModalEditarUsuario').addEventListener('click', () => {
+  document.getElementById('modalEditarUsuario').classList.remove('activo');
+});
+document.getElementById('modalEditarUsuario').addEventListener('click', (e) => {
+  if(e.target.id === 'modalEditarUsuario') document.getElementById('modalEditarUsuario').classList.remove('activo');
+});
+
+function abrirEditarUsuario(email){
+  const u = listaSociosCompleta.find(x => x.email === email);
+  if(!u) return;
+  document.getElementById('modalEditarUsuario').classList.add('activo');
+  renderFormEditarUsuario(u);
+}
+
+function renderFormEditarUsuario(u){
+  const cont = document.getElementById('modalEditarUsuarioContenido');
+  cont.innerHTML = `
+    <div class="modal-titulo">${u.nombre} ${u.apellido}</div>
+    <div class="modal-subtitulo">${u.email}</div>
+
+    <div class="form-editar-reserva">
+    <div class="datos-grid">
+      <div><label>Nombre</label><input type="text" id="eduNombre" value="${u.nombre}"></div>
+      <div><label>Apellido</label><input type="text" id="eduApellido" value="${u.apellido}"></div>
+      <div><label>Cédula</label><input type="text" id="eduCi" value="${u.ci}"></div>
+      <div><label>Teléfono</label><input type="text" id="eduTelefono" value="${u.telefono}"></div>
+      <div>
+        <label>Categoría</label>
+        <select id="eduCategoria" style="padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;width:100%;box-sizing:border-box;">
+          <option value="particular">Particular</option>
+          <option value="socio">Socio</option>
+          <option value="convenio">Convenio</option>
+        </select>
+      </div>
+      <div id="eduBloqueSocio"><label>Número de socio</label><input type="text" id="eduNumeroSocio" value="${u.numero_socio || ''}"></div>
+      <div id="eduBloqueConvenio"><label>Institución</label><select id="eduInstitucion" style="padding:9px 12px;border:1px solid var(--line);border-radius:4px;font-size:13.5px;width:100%;box-sizing:border-box;"></select></div>
+    </div>
+    </div>
+
+    <p id="eduMensaje" style="font-size:12.5px;margin-top:8px;"></p>
+
+    <div class="modal-acciones">
+      <button class="btn-secundario" id="btnGuardarUsuario">Guardar cambios</button>
+      <button class="btn-rechazar" id="btnEliminarUsuario">Eliminar usuario</button>
+    </div>`;
+
+  document.getElementById('eduCategoria').value = u.categoria_solicitada;
+
+  const bloqueSocio = document.getElementById('eduBloqueSocio');
+  const bloqueConvenio = document.getElementById('eduBloqueConvenio');
+  const selInstitucion = document.getElementById('eduInstitucion');
+
+  function actualizarBloques(){
+    const cat = document.getElementById('eduCategoria').value;
+    bloqueSocio.style.display = cat === 'socio' ? 'block' : 'none';
+    bloqueConvenio.style.display = cat === 'convenio' ? 'block' : 'none';
+  }
+  document.getElementById('eduCategoria').addEventListener('change', actualizarBloques);
+  actualizarBloques();
+
+  fetch(`${URL_BACKEND}?accion=obtenerCategoriasDescuento`)
+    .then(res => res.json())
+    .then(data => {
+      (data.categorias || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id; opt.textContent = c.nombre;
+        selInstitucion.appendChild(opt);
+      });
+      selInstitucion.value = u.id_convenio || '';
+      actualizarBloques();
+    })
+    .catch(err => console.error(err));
+
+  document.getElementById('btnGuardarUsuario').addEventListener('click', () => {
+    const msg = document.getElementById('eduMensaje');
+    msg.style.color = 'var(--ink-soft)'; msg.textContent = '';
+    const btn = document.getElementById('btnGuardarUsuario');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'modificarUsuario', emailAdmin, email: u.email,
+      nombre: document.getElementById('eduNombre').value.trim(),
+      apellido: document.getElementById('eduApellido').value.trim(),
+      ci: document.getElementById('eduCi').value.trim(),
+      telefono: document.getElementById('eduTelefono').value.trim(),
+      categoria_solicitada: document.getElementById('eduCategoria').value,
+      id_convenio: document.getElementById('eduCategoria').value === 'convenio' ? selInstitucion.value : '',
+      numero_socio: document.getElementById('eduNumeroSocio').value.trim()
+    })})
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+      if(data.error){ msg.style.color = '#b5442e'; msg.textContent = data.error; return; }
+      msg.style.color = '#1f7a45'; msg.textContent = '✓ Guardado.';
+      cargarSocios();
+      setTimeout(() => document.getElementById('modalEditarUsuario').classList.remove('activo'), 600);
+    })
+    .catch(err => {
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+      msg.style.color = '#b5442e'; msg.textContent = 'No se pudo conectar con el servidor. Probá de nuevo.';
+      console.error(err);
+    });
+  });
+
+  document.getElementById('btnEliminarUsuario').addEventListener('click', () => {
+    if(!confirm(`¿Confirmás que querés eliminar a ${u.nombre} ${u.apellido} (${u.email})? Va a tener que registrarse de nuevo si quiere volver a usar su cuenta.`)) return;
+    const btn = document.getElementById('btnEliminarUsuario');
+    btn.disabled = true; btn.textContent = '...';
+    fetch(URL_BACKEND, { method:'POST', body: JSON.stringify({
+      accion:'eliminarUsuario', emailAdmin, email: u.email
+    })})
+    .then(res => res.json())
+    .then(data => {
+      if(data.error){ alert(data.error); btn.disabled=false; btn.textContent='Eliminar usuario'; return; }
+      document.getElementById('modalEditarUsuario').classList.remove('activo');
+      cargarSocios();
+    })
+    .catch(err => { console.error(err); btn.disabled=false; btn.textContent='Eliminar usuario'; });
+  });
+}
+
 /* ============ Acceso / Solicitudes ============ */
 function cargarSolicitudes(){
   fetch(`${URL_BACKEND}?accion=obtenerSolicitudesPendientes&emailAdmin=${encodeURIComponent(emailAdmin)}&_ts=${Date.now()}`)
@@ -1316,7 +1445,7 @@ const CATEGORIAS_SOCIOS_ = [
 
 function tablaSociosHtml_(items){
   let html = `<table class="tabla"><thead><tr>
-    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Convenio</th><th>N° de socio</th><th>Estado</th><th>Documentos</th>
+    <th>Nombre</th><th>Email</th><th>CI</th><th>Teléfono</th><th>Convenio</th><th>N° de socio</th><th>Estado</th><th>Documentos</th><th>Acciones</th>
   </tr></thead><tbody>`;
   items.forEach(u => {
     const convenioTexto = u.categoria_solicitada === 'convenio' ? (NOMBRES_INST[u.id_convenio] || u.id_convenio) : '—';
@@ -1327,6 +1456,7 @@ function tablaSociosHtml_(items){
       <td>${[u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_foto_ci}" target="_blank" rel="noopener">Cédula</a>` : '',
              u.link_comprobante && u.link_comprobante !== u.link_foto_ci ? `<a class="link-comprobante" href="${u.link_comprobante}" target="_blank" rel="noopener">Comprobante</a>` : ''
             ].filter(Boolean).join(' · ') || '—'}</td>
+      <td><button class="btn-ghost-mini btn-editar-usuario" data-email="${u.email}">Editar</button></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -1347,6 +1477,10 @@ function renderTablaSocios(lista){
     </details>`;
   });
   cont.innerHTML = html || '<p class="vacio">No se encontraron socios con ese criterio.</p>';
+
+  cont.querySelectorAll('.btn-editar-usuario').forEach(btn => {
+    btn.addEventListener('click', () => abrirEditarUsuario(btn.dataset.email));
+  });
 }
 
 document.getElementById('filtroSocios').addEventListener('input', (e) => {
